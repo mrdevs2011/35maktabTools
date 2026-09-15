@@ -11,11 +11,11 @@
 
 import { auth, onAuthStateChanged, signOut } from "./firebase-config.js";
 
-// loginPath: joriy sahifadan login.html'gacha bo'lgan nisbiy yo'l.
-// Root'da chaqirsang: "login.html"
-// ism-tanlash/ ichida chaqirsang: "../login.html"
+// loginPath: joriy sahifadan login/index.html'gacha bo'lgan nisbiy yo'l.
+// Root'da chaqirsang: "login/index.html"
+// ism-tanlash/ ichida chaqirsang: "../login/index.html"
 
-export function requireAuth(onReady, loginPath = "login.html") {
+export function requireAuth(onReady, loginPath = "login/index.html") {
   onAuthStateChanged(auth, (user) => {
     if (!user) {
       window.location.href = loginPath;
@@ -25,7 +25,7 @@ export function requireAuth(onReady, loginPath = "login.html") {
   });
 }
 
-export function logout(loginPath = "login.html") {
+export function logout(loginPath = "login/index.html") {
   signOut(auth).then(() => {
     window.location.href = loginPath;
   });

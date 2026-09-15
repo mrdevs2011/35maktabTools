@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kirish — 35MaktabTools</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #14172B; --bg-soft: #1C2040; --card: #20244A;
+    --gold: #F2B705; --coral: #FF6B5B;
+    --text: #F1EEE4; --text-dim: #9BA0C4; --border: #33386B;
+  }
+  *{ box-sizing: border-box; }
+  html{ scrollbar-width: thin; scrollbar-color: var(--gold) var(--bg-soft); }
+  ::-webkit-scrollbar{ width: 10px; height: 10px; }
+  ::-webkit-scrollbar-track{ background: var(--bg-soft); }
+  ::-webkit-scrollbar-thumb{ background: var(--border); border-radius: 10px; border: 2px solid var(--bg-soft); }
+  ::-webkit-scrollbar-thumb:hover{ background: var(--gold); }
+
+  body{
+    margin:0; min-height:100vh;
+    background: var(--bg);
+    background-image:
+      radial-gradient(circle at 15% 20%, rgba(242,183,5,0.08), transparent 40%),
+      radial-gradient(circle at 85% 80%, rgba(255,107,91,0.10), transparent 45%);
+    font-family: 'Inter', sans-serif;
+    color: var(--text);
+    display:flex; align-items:center; justify-content:center;
+    padding: 24px;
+  }
+  .wrap{ width:100%; max-width: 380px; }
+  .eyebrow{ font-family:'Space Grotesk', sans-serif; font-size: 13px; color: var(--text-dim); margin-bottom: 6px; }
+  h1{ font-family:'Space Grotesk', sans-serif; font-size: 28px; margin: 0 0 22px 0; }
+  h1 span{ color: var(--gold); }
+
+  .card{ background: var(--card); border: 1px solid var(--border); border-radius: 18px; padding: 26px; }
+
+  .mode-switch{
+    display:flex; background: var(--bg-soft); border: 1px solid var(--border);
+    border-radius: 12px; padding: 4px; margin-bottom: 20px;
+  }
+  .mode-btn{
+    flex:1; text-align:center; padding: 9px 0; border-radius: 9px;
+    font-family:'Space Grotesk', sans-serif; font-size: 13px; font-weight: 700;
+    color: var(--text-dim); cursor:pointer; user-select:none;
+  }
+  .mode-btn.active{ background: var(--card); color: var(--text); }
+
+  label{ display:block; font-size: 12px; color: var(--text-dim); margin: 14px 0 6px 0; }
+  input{
+    width:100%; background: var(--bg-soft); border: 1px solid var(--border);
+    border-radius: 10px; color: var(--text); font-family:'Inter', sans-serif;
+    font-size: 14px; padding: 11px 13px;
+  }
+  input:focus{ outline:none; border-color: var(--gold); }
+
+  button.submit{
+    width:100%; margin-top: 20px;
+    font-family:'Space Grotesk', sans-serif; font-size: 15px; font-weight: 700;
+    border:none; border-radius: 12px; padding: 13px 18px; cursor:pointer;
+    background: var(--gold); color: #14172B;
+  }
+  button.submit:disabled{ opacity: 0.5; cursor:not-allowed; }
+
+  .error-box{
+    margin-top: 14px; padding: 11px 13px; border-radius: 10px;
+    background: rgba(255,107,91,0.12); border: 1px solid var(--coral);
+    color: #FFB4A9; font-size: 13px; display:none; line-height:1.5;
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <div class="eyebrow">35MaktabTools</div>
+  <h1>O'qituvchi <span>kirishi</span></h1>
+
+  <div class="card">
+    <div class="mode-switch">
+      <div class="mode-btn active" data-mode="signin">Kirish</div>
+      <div class="mode-btn" data-mode="signup">Ro'yxatdan o'tish</div>
+    </div>
+
+    <form id="authForm">
+      <div id="nameField" style="display:none;">
+        <label for="name">Ism-familiya</label>
+        <input type="text" id="name" placeholder="Aziza Karimova">
+      </div>
+
+      <label for="username">Username</label>
+      <input type="text" id="username" required placeholder="aziza_teacher" pattern="[a-zA-Z0-9_\.]+" title="Faqat lotin harflari, raqam, _ va . ishlatiladi">
+
+      <label for="password">Parol</label>
+      <input type="password" id="password" required placeholder="kamida 6 belgi" minlength="6">
+
+      <button type="submit" class="submit" id="submitBtn">Kirish</button>
+      <div class="error-box" id="errorBox"></div>
+    </form>
+  </div>
+</div>
+
+<script type="module">
+  import { auth, db, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged,
+    doc, getDoc, setDoc }
+    from "../firebase-config.js";
+
+  // Firebase Auth faqat email bilan ishlaydi — username'ni "orqa fonda"
+  // shu domen ostida fake email'ga aylantiramiz. User buni ko'rmaydi.
+  const EMAIL_DOMAIN = "35maktab.uz";
+  const usernameToEmail = (username) => `${username.toLowerCase()}@${EMAIL_DOMAIN}`;
+
+  const nameField = document.getElementById('nameField');
+  const modeBtns = document.querySelectorAll('.mode-btn');
+  const submitBtn = document.getElementById('submitBtn');
+  const form = document.getElementById('authForm');
+  const errorBox = document.getElementById('errorBox');
+  let mode = 'signin';
+
+  // Allaqachon login bo'lgan bo'lsa, to'g'ridan-to'g'ri asosiy sahifaga o'tkazamiz
+  onAuthStateChanged(auth, (user) => {
+    if (user) window.location.href = "../index.html";
+  });
+
+  modeBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      modeBtns.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      mode = btn.dataset.mode;
+      submitBtn.textContent = mode === 'signin' ? 'Kirish' : "Ro'yxatdan o'tish";
+      nameField.style.display = mode === 'signup' ? 'block' : 'none';
+      document.getElementById('name').required = mode === 'signup';
+      errorBox.style.display = 'none';
+    });
+  });
+
+  function showError(message){
+    errorBox.textContent = message;
+    errorBox.style.display = 'block';
+  }
+
+  // Firebase xato kodlarini o'qituvchiga tushunarli tilga o'giramiz
+  function translateError(code){
+    switch(code){
+      case 'auth/email-already-in-use': return "Bu username allaqachon band. Boshqasini tanlang yoki 'Kirish'ni bosing.";
+      case 'auth/invalid-email': return "Username formati noto'g'ri.";
+      case 'auth/weak-password': return "Parol juda oddiy — kamida 6 belgi bo'lsin.";
+      case 'auth/user-not-found':
+      case 'auth/wrong-password':
+      case 'auth/invalid-credential': return "Username yoki parol noto'g'ri.";
+      case 'auth/too-many-requests': return "Juda ko'p urinish. Biroz kutib, qayta urinib ko'ring.";
+      default: return "Xatolik yuz berdi. Qayta urinib ko'ring.";
+    }
+  }
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    errorBox.style.display = 'none';
+    submitBtn.disabled = true;
+
+    const usernameRaw = document.getElementById('username').value.trim();
+    const username = usernameRaw.toLowerCase();
+    const password = document.getElementById('password').value;
+    const name = document.getElementById('name').value.trim();
+
+    try {
+      if (mode === 'signin') {
+        // Avval username -> email mapping'ni Firestore'dan o'qiymiz,
+        // keyin o'sha email bilan haqiqiy Firebase Auth login qilamiz.
+        const mapSnap = await getDoc(doc(db, "usernames", username));
+        if (!mapSnap.exists()) {
+          showError("Username yoki parol noto'g'ri.");
+          submitBtn.disabled = false;
+          return;
+        }
+        const email = mapSnap.data().email;
+        await signInWithEmailAndPassword(auth, email, password);
+      } else {
+        if (!name) {
+          showError("Ism-familiyani kiriting.");
+          submitBtn.disabled = false;
+          return;
+        }
+        // Username band-bandmasligini oldindan tekshiramiz (Firestore rules
+        // baribir qayta tasdiqlaydi, bu faqat tezroq xato ko'rsatish uchun).
+        const existing = await getDoc(doc(db, "usernames", username));
+        if (existing.exists()) {
+          showError("Bu username allaqachon band. Boshqasini tanlang.");
+          submitBtn.disabled = false;
+          return;
+        }
+
+        const email = usernameToEmail(username);
+        const cred = await createUserWithEmailAndPassword(auth, email, password);
+
+        // usernames/{username} -> uid+email mapping (login vaqtida kerak)
+        await setDoc(doc(db, "usernames", username), {
+          uid: cred.user.uid,
+          email
+        });
+        // teachers/{uid} -> profil ma'lumotlari
+        await setDoc(doc(db, "teachers", cred.user.uid), {
+          name,
+          username,
+          email
+        });
+      }
+      window.location.href = "../index.html";
+    } catch (err) {
+      showError(translateError(err.code));
+      submitBtn.disabled = false;
+    }
+  });
+</script>
+
+</body>
+</html>

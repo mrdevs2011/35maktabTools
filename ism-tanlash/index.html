@@ -280,9 +280,9 @@
     gate.style.display = 'none';
     appWrap.style.display = 'block';
     await loadStudentsFromFirestore();
-  }, "../login.html");
+  }, "../login/index.html");
 
-  logoutBtn.addEventListener('click', () => logout("../login.html"));
+  logoutBtn.addEventListener('click', () => logout("../login/index.html"));
 
   // ---------- FIRESTORE ----------
   function studentsCollection(){
