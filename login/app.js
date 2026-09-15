@@ -84,6 +84,11 @@ form.addEventListener('submit', async (e) => {
 
       const email = usernameToEmail(username);
       const cred = await createUserWithEmailAndPassword(auth, email, password);
+      // Firestore rules token.email'ni tekshiradi — yangi yaratilgan userning
+      // ID tokeni ba'zan bir zumga eski (email'siz) holda keshda qolishi mumkin.
+      // Majburan yangilab olmasak, keyingi setDoc "Missing or insufficient
+      // permissions" xatosi bilan tasodifiy vaqti-vaqti bilan yiqilishi mumkin.
+      await cred.user.getIdToken(true);
 
       await setDoc(doc(db, "usernames", username), {
         uid: cred.user.uid,

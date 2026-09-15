@@ -12,8 +12,8 @@ o'z ma'lumotlarini ko'radi.
 
 | Tool | Papka | Holat |
 |---|---|---|
-| Ism tanlash | [`ism-tanlash/`](./ism-tanlash) | ✅ Tayyor |
-| Baho kalkulyatori | [`baho-kalkulyatori/`](./baho-kalkulyatori) | ✅ Tayyor |
+| Ism tanlash | [`tools/ism-tanlash/`](./tools/ism-tanlash) | ✅ Tayyor |
+| Baho kalkulyatori | [`tools/baho-kalkulyatori/`](./tools/baho-kalkulyatori) | ✅ Tayyor |
 | Davomat tracker | `davomat-tracker/` | 🔜 Rejada |
 | Jadval generator | `jadval-generator/` | 🔜 Rejada |
 
