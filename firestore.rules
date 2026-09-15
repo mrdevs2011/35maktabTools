@@ -27,14 +27,27 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
-    // teachers/{teacherId}: profil (name, username, email).
-    // Faqat egasi o'qiy/yoza oladi, va faqat maktab domenidan bo'lsa.
+    // teachers/{teacherId}: profil (name, username, email) + BARCHA tool
+    // ma'lumotlari, cheksiz chuqurlikda ({document=**} — recursive wildcard).
+    //
+    // Bu qoida "teachers/{teacherId}" ostidagi HAR QANDAY sub-collection va
+    // HAR QANDAY chuqurlikni qamraydi: teachers/{uid}/students/{id},
+    // teachers/{uid}/grades/{id}, hatto teachers/{uid}/jadval/{day}/lessons/{id}
+    // kabi ichma-ich subcollection'larni ham — hammasi avtomatik himoyalanadi.
+    //
+    // GLOBAL QOIDA: yangi tool qanday ma'lumot tuzilishi ishlatishidan
+    // qat'iy nazar (bitta collection, subcollection, necha qavat bo'lishidan
+    // qat'iy nazar), bu yerga HECH QACHON qaytilmaydi. Yagona shart: yo'l
+    // "teachers/{o'sha teacherId}" bilan boshlansin — buni data.js'dagi har
+    // bir funksiya (setToolDoc, getToolDoc, listToolDocs, ...) avtomatik
+    // ta'minlaydi, chunki ular hech qachon "teachers/{uid}"dan tashqariga
+    // yozmaydi.
+    match /teachers/{teacherId}/{document=**} {
+      allow read, write: if isSchoolTeacher() && request.auth.uid == teacherId;
+    }
+
     match /teachers/{teacherId} {
       allow read, write: if isSchoolTeacher() && request.auth.uid == teacherId;
-
-      match /students/{studentId} {
-        allow read, write: if isSchoolTeacher() && request.auth.uid == teacherId;
-      }
     }
   }
 }
