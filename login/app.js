@@ -1,6 +1,3 @@
-// login/app.js — auth talab qilmaydigan yagona sahifa, shuning uchun
-// mountToolShell ishlatilmaydi (u requireAuth'ga bog'liq). Logika o'zgarmadi,
-// faqat CSS endi shared/theme.css'dan keladi.
 import { auth, db, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged,
   doc, getDoc, setDoc }
   from "../shared/firebase-config.js";
@@ -84,10 +81,6 @@ form.addEventListener('submit', async (e) => {
 
       const email = usernameToEmail(username);
       const cred = await createUserWithEmailAndPassword(auth, email, password);
-      // Firestore rules token.email'ni tekshiradi — yangi yaratilgan userning
-      // ID tokeni ba'zan bir zumga eski (email'siz) holda keshda qolishi mumkin.
-      // Majburan yangilab olmasak, keyingi setDoc "Missing or insufficient
-      // permissions" xatosi bilan tasodifiy vaqti-vaqti bilan yiqilishi mumkin.
       await cred.user.getIdToken(true);
 
       await setDoc(doc(db, "usernames", username), {

@@ -1,15 +1,9 @@
-// app.js — Ism Roulette. FAQAT shu tool'ning logikasi. Shell, CSS, auth — shared/'da.
-// O'quvchilar ro'yxati endi "sinf"ga bog'liq: root sahifada tanlangan FAOL
-// sinfning ro'yxati bilan ishlaydi (bu tool o'zi sinf tanlamaydi).
 import { mountToolShell } from "../../shared/shell.js";
-import { getActiveClass, listStudents, replaceStudents } from "../../shared/data.js";
+import { getActiveClass, listStudents, replaceStudents, getToolDoc, setToolDoc } from "../../shared/data.js";
 
 const { user, container } = await mountToolShell({
   eyebrow: "O'quvchi tanlash",
   title: `Ism <span>Roulette</span>`,
-  // tools/ism-tanlash/ — root'dan 2 qavat pastda, shuning uchun default
-  // "../shared" emas, "../../shared" kerak. Yangi tool yozganda ham xuddi
-  // shu 3 ta yo'lni ko'chirib ol.
   sharedPath: "../../shared",
   rootPath: "../../index.html",
   loginPath: "../../login/index.html",
@@ -45,6 +39,7 @@ if (!activeClass) {
         <button class="btn-save" id="saveBtn">Saqlash</button>
         <button class="btn-main" id="pickBtn">Tanla</button>
         <button class="btn-ghost" id="resetBtn">Qayta yuklash</button>
+        <button class="btn-ghost" id="excludeToggleBtn" type="button">O'quvchi chiqarib yuborish</button>
       </div>
 
       <div class="sync-status" id="syncStatus"></div>
@@ -53,6 +48,11 @@ if (!activeClass) {
         <span class="dot"></span>
         <span id="poolCountText"></span>
       </div>
+    </div>
+
+    <div class="card" id="excludePanel" style="display:none;">
+      <p class="section-lead">O'chirilgan (off) o'quvchi shu sinfda hech qachon tanlanmaydi — ro'yxatdan butunlay o'chmaydi, faqat roulette'dan chetlatiladi. Holat saqlanadi, keyingi safar kirganda ham eslab qoladi.</p>
+      <div id="excludeList"></div>
     </div>
   `;
 
@@ -67,20 +67,30 @@ if (!activeClass) {
   const poolCount = document.getElementById('poolCount');
   const poolCountText = document.getElementById('poolCountText');
   const syncStatus = document.getElementById('syncStatus');
+  const excludeToggleBtn = document.getElementById('excludeToggleBtn');
+  const excludePanel = document.getElementById('excludePanel');
+  const excludeList = document.getElementById('excludeList');
 
   let pool = [];
   let fullList = [];
   let spinning = false;
+  let studentsWithId = [];
+  let excludedIds = new Set();
 
-  // ---------- FIRESTORE (faol sinfning students ro'yxati orqali) ----------
   async function loadStudents() {
     syncStatus.textContent = "Yuklanmoqda...";
     try {
-      const students = await listStudents(user.uid, activeClass.id);
+      const [students, excludeDoc] = await Promise.all([
+        listStudents(user.uid, activeClass.id),
+        getToolDoc(user.uid, "ism-tanlash-excluded", activeClass.id),
+      ]);
+      studentsWithId = students;
+      excludedIds = new Set(excludeDoc?.ids || []);
       namesInput.value = students.map(s => s.name).join('\n');
       syncFromTextarea();
       syncStatus.textContent = students.length ? `${students.length} ta ism yuklandi` : "";
       syncStatus.className = "sync-status";
+      renderExcludeList();
     } catch (err) {
       syncStatus.textContent = "Yuklashda xatolik: " + err.message;
       syncStatus.className = "sync-status error";
@@ -105,13 +115,16 @@ if (!activeClass) {
 
   saveBtn.addEventListener('click', saveStudents);
 
-  // ---------- RANDOM TANLASH LOGIKASI ----------
   function parseNames() {
     return namesInput.value.split('\n').map(n => n.trim()).filter(n => n.length > 0);
   }
 
   function syncFromTextarea() {
-    fullList = parseNames();
+    const parsed = parseNames();
+    const excludedNames = new Set(
+      studentsWithId.filter(s => excludedIds.has(s.id)).map(s => s.name)
+    );
+    fullList = parsed.filter(name => !excludedNames.has(name));
     pool = [...fullList];
     updateCount();
   }
@@ -191,6 +204,44 @@ if (!activeClass) {
 
   pickBtn.addEventListener('click', pickRandom);
   resetBtn.addEventListener('click', resetPool);
+
+  function renderExcludeList() {
+    if (studentsWithId.length === 0) {
+      excludeList.innerHTML = `<div class="empty-state">Bu sinfda hali o'quvchi yo'q.</div>`;
+      return;
+    }
+    excludeList.innerHTML = studentsWithId.map(s => `
+      <div class="student-row">
+        <span>${s.name}</span>
+        <label class="toggle">
+          <input type="checkbox" data-exclude-toggle="${s.id}" ${excludedIds.has(s.id) ? '' : 'checked'}>
+        </label>
+      </div>
+    `).join('');
+
+    excludeList.querySelectorAll('[data-exclude-toggle]').forEach(input => {
+      input.addEventListener('change', (e) => toggleExclude(e.target.dataset.excludeToggle, !e.target.checked));
+    });
+  }
+
+  async function toggleExclude(studentId, excluded) {
+    if (excluded) excludedIds.add(studentId);
+    else excludedIds.delete(studentId);
+
+    try {
+      await setToolDoc(user.uid, "ism-tanlash-excluded", activeClass.id, { ids: [...excludedIds] });
+    } catch (err) {
+      syncStatus.textContent = "Saqlashda xatolik: " + err.message;
+      syncStatus.className = "sync-status error";
+    }
+    syncFromTextarea();
+  }
+
+  excludeToggleBtn.addEventListener('click', () => {
+    const opening = excludePanel.style.display === 'none';
+    excludePanel.style.display = opening ? 'block' : 'none';
+    if (opening) renderExcludeList();
+  });
 
   await loadStudents();
 }

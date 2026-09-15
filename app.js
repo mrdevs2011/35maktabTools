@@ -1,7 +1,3 @@
-// app.js — root sahifa. Grid TOOLS ro'yxatidan avtomatik quriladi.
-// Yangi tool qo'shish uchun bu faylga TEGINMAYSAN — shared/tools-registry.js'ga qator qo'shasan.
-// Sinf-bar (faol sinf tanlash / yangi sinf yaratish) shu yerda, chunki u
-// tool emas — barcha tool'lar uchun umumiy "hozirgi kontekst" boshqaruvi.
 import { mountToolShell } from "./shared/shell.js";
 import { TOOLS } from "./shared/tools-registry.js";
 import { listClasses, createClass, getActiveClass, setActiveClass } from "./shared/data.js";
@@ -82,7 +78,5 @@ document.getElementById('newClassForm').addEventListener('submit', async (e) => 
   submitBtn.disabled = true;
   const classId = await createClass(user.uid, name);
   await setActiveClass(user.uid, classId, name);
-  // Yangi sinf yaratildi va faol qilindi — endi to'g'ridan-to'g'ri shu sinf
-  // ichiga kirib, o'quvchilarning ism-familyasini kiritishga o'tamiz.
   window.location.href = `sinflar/index.html?classId=${classId}`;
 });

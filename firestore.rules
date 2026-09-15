@@ -2,22 +2,11 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Faqat @35maktab.uz domenidagi (fake email, username orqali yasalgan)
-    // userlar tizimdan foydalana oladi. Bu frontenddagi tekshiruvni
-    // bypass qilib bo'lmaydigan haqiqiy himoya qatlami — kimdir DevTools
-    // orqali frontend domenini o'chirib signup qilsa ham, Firestore'dagi
-    // hech qanday ma'lumotga o'qish/yozish huquqi bo'lmaydi.
     function isSchoolTeacher() {
       return request.auth != null
         && request.auth.token.email.matches('.*@35maktab[.]uz$');
     }
 
-    // usernames/{username}: login vaqtida "username -> email" topish uchun
-    // HAR KIM o'qiy oladi (auth bo'lmasa ham) — aks holda login formasi
-    // ishlay olmaydi, chunki email topilmasa signIn chaqirib bo'lmaydi.
-    // Faqat email/uid ko'rsatiladi, parol bu yerda umuman saqlanmaydi.
-    // Yozish faqat bir marta, faqat o'z username'ing uchun, faqat signup
-    // paytida (create) — mavjud mapping'ni o'zgartirib/o'chirib bo'lmaydi.
     match /usernames/{username} {
       allow get: if true;
       allow list: if false;
@@ -27,21 +16,6 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
-    // teachers/{teacherId}: profil (name, username, email) + BARCHA tool
-    // ma'lumotlari, cheksiz chuqurlikda ({document=**} — recursive wildcard).
-    //
-    // Bu qoida "teachers/{teacherId}" ostidagi HAR QANDAY sub-collection va
-    // HAR QANDAY chuqurlikni qamraydi: teachers/{uid}/students/{id},
-    // teachers/{uid}/grades/{id}, hatto teachers/{uid}/jadval/{day}/lessons/{id}
-    // kabi ichma-ich subcollection'larni ham — hammasi avtomatik himoyalanadi.
-    //
-    // GLOBAL QOIDA: yangi tool qanday ma'lumot tuzilishi ishlatishidan
-    // qat'iy nazar (bitta collection, subcollection, necha qavat bo'lishidan
-    // qat'iy nazar), bu yerga HECH QACHON qaytilmaydi. Yagona shart: yo'l
-    // "teachers/{o'sha teacherId}" bilan boshlansin — buni data.js'dagi har
-    // bir funksiya (setToolDoc, getToolDoc, listToolDocs, ...) avtomatik
-    // ta'minlaydi, chunki ular hech qachon "teachers/{uid}"dan tashqariga
-    // yozmaydi.
     match /teachers/{teacherId}/{document=**} {
       allow read, write: if isSchoolTeacher() && request.auth.uid == teacherId;
     }

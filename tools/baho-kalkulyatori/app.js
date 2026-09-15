@@ -1,5 +1,3 @@
-// app.js — Baho kalkulyatori. O'quvchilar ro'yxati endi FAOL sinfdan keladi
-// (root sahifada tanlanadi) — bu tool o'zi sinf tanlamaydi, faqat o'qiydi.
 import { mountToolShell } from "../../shared/shell.js";
 import { getActiveClass, listStudents, getToolDoc, setToolDoc, addToToolArray } from "../../shared/data.js";
 
@@ -7,9 +5,6 @@ const { user, container } = await mountToolShell({
   eyebrow: "Baholash",
   title: `Baho <span>kalkulyatori</span>`,
   width: "wide",
-  // tools/baho-kalkulyatori/ — root'dan 2 qavat pastda, shuning uchun default
-  // "../shared" emas, "../../shared" kerak. Yangi tool yozganda ham xuddi
-  // shu 3 ta yo'lni ko'chirib ol.
   sharedPath: "../../shared",
   rootPath: "../../index.html",
   loginPath: "../../login/index.html",
@@ -60,7 +55,6 @@ if (!activeClass) {
 
   let students = [];
 
-  // ---------- Faol sinfning students ro'yxatidan o'qish (data.js orqali, boshqa hech qayerdan) ----------
   async function loadStudents() {
     syncStatus.textContent = "Yuklanmoqda...";
     try {
@@ -81,7 +75,6 @@ if (!activeClass) {
     }
   }
 
-  // ---------- grades/{studentId} — faqat shu tool'ga xos, ism emas, studentId bog'langan ----------
   async function loadScoresForSelected() {
     const studentId = studentSelect.value;
     if (!studentId) { resultCard.style.display = 'none'; return; }
@@ -117,8 +110,6 @@ if (!activeClass) {
     syncStatus.textContent = "Saqlanmoqda...";
     syncStatus.className = "sync-status";
     try {
-      // Hujjat mavjud bo'lmasa yaratamiz (studentName saqlaymiz faqat ko'rsatish
-      // qulayligi uchun keshlash sifatida — asosiy manba baribir students/{id}).
       const existing = await getToolDoc(user.uid, "grades", studentId);
       if (!existing) {
         await setToolDoc(user.uid, "grades", studentId, { scores: [value] });

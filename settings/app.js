@@ -1,7 +1,6 @@
-// settings/app.js — FAQAT shu sahifaning logikasi. Shell/CSS/auth shared/'da.
 import { mountToolShell } from "../shared/shell.js";
 import {
-  auth, db, doc, getDoc, updateDoc,
+  auth, db, doc, getDoc, updateDoc, setDoc,
   updatePassword, reauthenticateWithCredential, EmailAuthProvider
 } from "../shared/firebase-config.js";
 
@@ -84,7 +83,7 @@ profileForm.addEventListener('submit', async (e) => {
   }
 
   try {
-    await updateDoc(doc(db, "teachers", user.uid), { name });
+    await setDoc(doc(db, "teachers", user.uid), { name }, { merge: true });
     showMsg(profileMsg, "Saqlandi.", 'success');
   } catch (err) {
     showMsg(profileMsg, "Xatolik yuz berdi. Qayta urinib ko'ring.", 'error');

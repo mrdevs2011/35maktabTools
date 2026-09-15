@@ -1,7 +1,3 @@
-// shell.js — har bir tool sahifasi shu faylni chaqiradi, boshqa hech narsa emas.
-// Gate, topbar, auth-guard, fontlar — hammasi shu yerda, BITTA joyda.
-// Yangi tool yozayotganda: shu funksiyani chaqir, keyin faqat o'zingning
-// ichki UI'ingni <div id="app"></div> ichiga qo'y.
 
 import { auth, db, doc, getDoc } from "./firebase-config.js";
 import { requireAuth, logout } from "./auth.js";
@@ -37,24 +33,6 @@ function ensureTheme(sharedPath){
   document.head.appendChild(favicon);
 }
 
-/**
- * mountToolShell — har bir himoyalangan sahifaning kirish nuqtasi.
- *
- * @param {Object} opts
- * @param {string} opts.eyebrow      - kichik sarlavha ustidagi label
- * @param {string} opts.title        - h1 matni (oddiy matn yoki HTML, masalan "Ism <span>Roulette</span>")
- * @param {"center"|"page"} [opts.layout="center"] - body layout turi
- * @param {"wide"|""} [opts.width=""] - .wrap kengligi
- * @param {boolean} [opts.showBack=true]   - "← Barcha tool'lar" havolasi
- * @param {boolean} [opts.showSettings=false] - "Sozlamalar" tugmasi (faqat root sahifada true)
- * @param {string} [opts.sharedPath="../shared"] - shared/ papkasiga nisbiy yo'l
- * @param {string} [opts.rootPath="../index.html"] - orqaga qaytish yo'li
- * @param {string} [opts.loginPath="../login/index.html"]
- * @param {string} [opts.settingsPath="../settings/index.html"]
- *
- * @returns {Promise<{user, container: HTMLElement}>}
- *   `container` — o'zingning tool UI'ingni shu elementga qo'y (innerHTML yoki append orqali).
- */
 export function mountToolShell(opts = {}) {
   const {
     eyebrow = "",
@@ -97,7 +75,6 @@ export function mountToolShell(opts = {}) {
       document.getElementById('__mt_gate').style.display = 'none';
       document.getElementById('__mt_wrap').style.display = 'block';
 
-      // showBack=false bo'lgan sahifalarda (root) foydalanuvchi ismini ko'rsatamiz
       if (!showBack) {
         try {
           const profileSnap = await getDoc(doc(db, "teachers", user.uid));

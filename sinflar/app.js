@@ -1,6 +1,3 @@
-// app.js — Sinflarni boshqarish. Tool emas, root bilan bir qatorda turadigan
-// CORE sahifa (settings kabi): sinf yaratish/o'chirish/faol qilish + har bir
-// sinfning o'quvchilar ro'yxatini (ism+familya) boshqarish shu yerda.
 import { mountToolShell } from "../shared/shell.js";
 import {
   listClasses, createClass, deleteClass, getActiveClass, setActiveClass,
@@ -94,8 +91,6 @@ function renderClasses() {
     });
   });
 
-  // Agar biror sinf ochiq turgan bo'lsa (toggle qilingan), qayta chizilgandan
-  // keyin ham ochiq holatini va o'quvchilar ro'yxatini tiklaymiz.
   if (openId && classes.some(c => c.id === openId)) {
     document.getElementById(`body-${openId}`)?.classList.add('open');
     renderStudents(openId);
@@ -166,8 +161,6 @@ newClassForm.addEventListener('submit', async (e) => {
   const submitBtn = e.target.querySelector('button[type="submit"]');
   submitBtn.disabled = true;
 
-  // Agar bu birinchi sinf bo'lsa (hali faol sinf tanlanmagan bo'lsa),
-  // avtomatik faol qilib qo'yamiz — teacher darhol ishlata boshlaydi.
   const hadNoActiveClass = !activeClass;
   const classId = await createClass(user.uid, name);
   if (hadNoActiveClass) {

@@ -1,14 +1,10 @@
-// tools-registry.js — YAGONA joy, yangi tool qo'shilganda shu ro'yxatga
-// bitta qator qo'shiladi, xolos. Root sahifa (index.html/app.js) shu
-// ro'yxatdan avtomatik grid quradi. 1000 tool bo'lsa ham index.html'ga
-// hech kim qo'l tegizmaydi.
 
 export const TOOLS = [
   {
     path: "tools/ism-tanlash/index.html",
     name: "Ism tanlash",
     desc: "O'quvchilar ro'yxatidan random ism tanlaydi — darsda navbat yoki o'yin uchun.",
-    status: "ready", // "ready" | "planned"
+    status: "ready",
   },
   {
     path: "tools/davomat-tracker/index.html",

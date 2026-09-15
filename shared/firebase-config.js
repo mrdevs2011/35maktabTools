@@ -1,5 +1,3 @@
-// firebase-config.js
-// Barcha tool'lar shu fayldan import qiladi — Firebase ulanish bitta joyda.
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import {
