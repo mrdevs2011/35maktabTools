@@ -16,32 +16,98 @@ import {
   query, orderBy, serverTimestamp, arrayUnion
 } from "./firebase-config.js";
 
-function studentsCollection(uid) {
-  return collection(db, "teachers", uid, "students");
+// ---------------------------------------------------------------------------
+// SINFLAR (classes) — har bir o'qituvchi bir nechta sinfga ega bo'lishi mumkin,
+// har birining O'Z mustaqil o'quvchilar ro'yxati bor:
+//   teachers/{uid}/classes/{classId}                     -> { name, createdAt }
+//   teachers/{uid}/classes/{classId}/students/{id}        -> { name, createdAt }
+// "Faol sinf" (root sahifada tanlangan) teachers/{uid} profilida saqlanadi —
+// shuning uchun BARCHA tool'lar (ism-tanlash, baho-kalkulyatori, ...) hech
+// narsa so'ramasdan bir xil "hozirgi sinf"ni ko'radi.
+// ---------------------------------------------------------------------------
+
+function classesCollection(uid) {
+  return collection(db, "teachers", uid, "classes");
 }
 
-/** Umumiy o'quvchilar ro'yxatini o'qiydi. Har doim createdAt bo'yicha tartiblangan.
+function studentsCollection(uid, classId) {
+  return collection(db, "teachers", uid, "classes", classId, "students");
+}
+
+/** Barcha sinflar ro'yxati. @returns {Promise<Array<{id:string, name:string}>>} */
+export async function listClasses(uid) {
+  const q = query(classesCollection(uid), orderBy("createdAt"));
+  const snapshot = await getDocs(q);
+  const classes = [];
+  snapshot.forEach(docSnap => classes.push({ id: docSnap.id, name: docSnap.data().name }));
+  return classes;
+}
+
+/** Yangi sinf yaratadi. @returns {Promise<string>} yangi sinfning ID'si */
+export async function createClass(uid, name) {
+  const ref = await addDoc(classesCollection(uid), { name, createdAt: serverTimestamp() });
+  return ref.id;
+}
+
+/** Sinfni VA undagi barcha o'quvchilarni o'chiradi. Qaytarib bo'lmaydi. */
+export async function deleteClass(uid, classId) {
+  const studentsSnap = await getDocs(studentsCollection(uid, classId));
+  await Promise.all(
+    studentsSnap.docs.map(docSnap =>
+      deleteDoc(doc(db, "teachers", uid, "classes", classId, "students", docSnap.id)))
+  );
+  await deleteDoc(doc(db, "teachers", uid, "classes", classId));
+}
+
+/** Hozir "faol" (root sahifada tanlangan) sinfni o'qiydi.
+ *  @returns {Promise<{id:string, name:string}|null>} hech narsa tanlanmagan bo'lsa null
+ */
+export async function getActiveClass(uid) {
+  const snap = await getDoc(doc(db, "teachers", uid));
+  if (!snap.exists()) return null;
+  const data = snap.data();
+  if (!data.activeClassId) return null;
+  return { id: data.activeClassId, name: data.activeClassName || "" };
+}
+
+/** Sinfni "faol" deb belgilaydi — shundan keyin BARCHA tool'lar shu sinfning
+ *  o'quvchilar ro'yxatidan avtomatik foydalanadi. */
+export async function setActiveClass(uid, classId, name) {
+  await updateDoc(doc(db, "teachers", uid), { activeClassId: classId, activeClassName: name });
+}
+
+/** Bitta sinfning o'quvchilar ro'yxatini o'qiydi. Har doim createdAt bo'yicha tartiblangan.
  *  @returns {Promise<Array<{id: string, name: string}>>}
  */
-export async function listStudents(uid) {
-  const q = query(studentsCollection(uid), orderBy("createdAt"));
+export async function listStudents(uid, classId) {
+  const q = query(studentsCollection(uid, classId), orderBy("createdAt"));
   const snapshot = await getDocs(q);
   const students = [];
   snapshot.forEach(docSnap => students.push({ id: docSnap.id, name: docSnap.data().name }));
   return students;
 }
 
-/** Butun ro'yxatni almashtiradi (eskilarini o'chirib, yangisini yozadi).
+/** Sinfga bitta o'quvchi qo'shadi (ism+familya birlashtirilib "name" sifatida saqlanadi). */
+export async function addStudent(uid, classId, name) {
+  await addDoc(studentsCollection(uid, classId), { name, createdAt: serverTimestamp() });
+}
+
+/** Sinfdan bitta o'quvchini o'chiradi. */
+export async function deleteStudent(uid, classId, studentId) {
+  await deleteDoc(doc(db, "teachers", uid, "classes", classId, "students", studentId));
+}
+
+/** Sinfning butun ro'yxatini almashtiradi (eskilarini o'chirib, yangisini yozadi).
  *  Kichik ro'yxatlar (bitta sinf, ~30-40 ism) uchun bu yetarli sodda strategiya.
  *  @param {string[]} names
  */
-export async function replaceStudents(uid, names) {
-  const snapshot = await getDocs(studentsCollection(uid));
+export async function replaceStudents(uid, classId, names) {
+  const snapshot = await getDocs(studentsCollection(uid, classId));
   await Promise.all(
-    snapshot.docs.map(docSnap => deleteDoc(doc(db, "teachers", uid, "students", docSnap.id)))
+    snapshot.docs.map(docSnap => deleteDoc(doc(db, "teachers", uid, "classes", classId, "students", docSnap.id)))
   );
   await Promise.all(
-    names.map(name => addDoc(studentsCollection(uid), { name, createdAt: serverTimestamp() }))
+    names.map(name => addDoc(studentsCollection(uid, classId), { name, createdAt: serverTimestamp() }))
   );
 }
 

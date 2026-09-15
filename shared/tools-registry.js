@@ -5,25 +5,25 @@
 
 export const TOOLS = [
   {
-    path: "ism-tanlash/index.html",
+    path: "tools/ism-tanlash/index.html",
     name: "Ism tanlash",
     desc: "O'quvchilar ro'yxatidan random ism tanlaydi — darsda navbat yoki o'yin uchun.",
     status: "ready", // "ready" | "planned"
   },
   {
-    path: "davomat-tracker/index.html",
+    path: "tools/davomat-tracker/index.html",
     name: "Davomat tracker",
     desc: "Kunlik davomatni qayd qilish va kuzatish.",
     status: "planned",
   },
   {
-    path: "baho-kalkulyatori/index.html",
+    path: "tools/baho-kalkulyatori/index.html",
     name: "Baho kalkulyatori",
     desc: "Baholarni kiritib, o'rtacha va reytingni hisoblash.",
     status: "ready",
   },
   {
-    path: "jadval-generator/index.html",
+    path: "tools/jadval-generator/index.html",
     name: "Jadval generator",
     desc: "Dars jadvalini avtomatik tuzish.",
     status: "planned",

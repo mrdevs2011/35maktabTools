@@ -1,9 +1,12 @@
 // app.js — root sahifa. Grid TOOLS ro'yxatidan avtomatik quriladi.
 // Yangi tool qo'shish uchun bu faylga TEGINMAYSAN — shared/tools-registry.js'ga qator qo'shasan.
+// Sinf-bar (faol sinf tanlash / yangi sinf yaratish) shu yerda, chunki u
+// tool emas — barcha tool'lar uchun umumiy "hozirgi kontekst" boshqaruvi.
 import { mountToolShell } from "./shared/shell.js";
 import { TOOLS } from "./shared/tools-registry.js";
+import { listClasses, createClass, getActiveClass, setActiveClass } from "./shared/data.js";
 
-const { container } = await mountToolShell({
+const { user, container } = await mountToolShell({
   eyebrow: "35-maktab uchun",
   title: `35Maktab<span>Tools</span>`,
   layout: "page",
@@ -15,6 +18,16 @@ const { container } = await mountToolShell({
   loginPath: "login/index.html",
   settingsPath: "settings/index.html",
 });
+
+let classes = await listClasses(user.uid);
+let activeClass = await getActiveClass(user.uid);
+
+function classOptionsHTML() {
+  if (classes.length === 0) return `<option value="">Hali sinf yo'q</option>`;
+  return classes
+    .map(c => `<option value="${c.id}" ${activeClass && activeClass.id === c.id ? 'selected' : ''}>${c.name}</option>`)
+    .join('');
+}
 
 const cardsHTML = TOOLS.map(tool => {
   const ready = tool.status === "ready";
@@ -31,6 +44,45 @@ const cardsHTML = TOOLS.map(tool => {
 
 container.insertAdjacentHTML('beforeend', `
   <p class="lead">Maktab hayotini qulaylashtiradigan mustaqil tool'lar to'plami. Har biri o'z ishini qiladi — bittasini boshqasisiz ham ishlatasan.</p>
+
+  <div class="card class-bar">
+    <span class="class-label">Faol sinf:</span>
+    <select id="classSelect" ${classes.length === 0 ? 'disabled' : ''}>${classOptionsHTML()}</select>
+    <button class="btn-ghost" id="newClassBtn" type="button">+ Yangi sinf</button>
+    <a class="manage-link" href="sinflar/index.html">Sinflarni boshqarish &rarr;</a>
+    <form class="new-class-form" id="newClassForm">
+      <input type="text" id="newClassName" placeholder="Sinf nomi, masalan: 5-A" required>
+      <button type="submit" class="btn-main">Yaratish</button>
+    </form>
+  </div>
+
   <div class="grid">${cardsHTML}</div>
   <footer>Muhammadrasul tomonidan, 35-maktab uchun.</footer>
 `);
+
+document.getElementById('classSelect').addEventListener('change', async (e) => {
+  const classId = e.target.value;
+  if (!classId) return;
+  const cls = classes.find(c => c.id === classId);
+  await setActiveClass(user.uid, classId, cls.name);
+  activeClass = cls;
+});
+
+document.getElementById('newClassBtn').addEventListener('click', () => {
+  document.getElementById('newClassForm').classList.toggle('open');
+  document.getElementById('newClassName').focus();
+});
+
+document.getElementById('newClassForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const input = document.getElementById('newClassName');
+  const name = input.value.trim();
+  if (!name) return;
+  const submitBtn = e.target.querySelector('button[type="submit"]');
+  submitBtn.disabled = true;
+  const classId = await createClass(user.uid, name);
+  await setActiveClass(user.uid, classId, name);
+  // Yangi sinf yaratildi va faol qilindi — endi to'g'ridan-to'g'ri shu sinf
+  // ichiga kirib, o'quvchilarning ism-familyasini kiritishga o'tamiz.
+  window.location.href = `sinflar/index.html?classId=${classId}`;
+});

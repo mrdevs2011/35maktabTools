@@ -35,10 +35,20 @@ o'z ma'lumotlarini ko'radi.
 ├── index.html + app.js         ← root, registry'dan grid quradi
 ├── login/                      ← auth talab qilmaydigan yagona sahifa
 ├── settings/
-└── <har-bir-tool>/
-    ├── index.html               ← har doim bir xil qolip (title bundan mustasno)
-    └── app.js                    ← FAQAT shu tool'ning logikasi
+├── sinflar/                    ← sinf yaratish/o'chirish/faol qilish + o'quvchi (ism-familya) boshqarish
+└── tools/                      ← BARCHA tool'lar shu yerda, root darajasida EMAS
+    └── <har-bir-tool>/
+        ├── index.html           ← har doim bir xil qolip (title bundan mustasno)
+        └── app.js                ← FAQAT shu tool'ning logikasi
 ```
+
+**Nega `tools/` alohida:** `login/`, `settings/`, `sinflar/` kabi nomlar
+root darajasida core feature'lar uchun band. Agar tool'lar ham root'ga
+tashlansa, ertaga shunga o'xshash nom bilan (masalan "students") core
+feature yaratmoqchi bo'lsang, papka nomi to'qnashib qoladi. `tools/` bitta
+o'z ichki papkasiga izolyatsiya qilingani bu muammoni butunlay yo'q qiladi —
+tool nomlari qancha ko'p bo'lmasin, ular hech qachon core sahifalar bilan
+kesishmaydi.
 
 ## O'rnatish
 
@@ -51,15 +61,23 @@ o'z ma'lumotlarini ko'radi.
 ## Ma'lumot modeli (Firestore)
 
 ```
-teachers/{uid}                          → profil (name, username, email)
-teachers/{uid}/students/{studentId}     → YAGONA umumiy o'quvchilar ro'yxati
-teachers/{uid}/<tool-collection>/{docId}→ har bir tool'ning o'z ma'lumoti,
-                                            studentId bilan bog'langan, ism bilan emas
+teachers/{uid}                                  → profil (name, username, email,
+                                                    activeClassId, activeClassName)
+teachers/{uid}/classes/{classId}                → sinf (name)
+teachers/{uid}/classes/{classId}/students/{id}  → o'sha SINFNING o'quvchilar ro'yxati
+teachers/{uid}/<tool-collection>/{docId}        → har bir tool'ning o'z ma'lumoti,
+                                                    studentId bilan bog'langan, ism bilan emas
 ```
 
-**Qoida (hech qachon buzilmaydi):** ism faqat `students/{studentId}`da. Boshqa
-har qanday tool o'z ma'lumotini `studentId` orqali bog'laydi — shunda ism
-tuzatilsa, hamma tool'da avtomatik to'g'ri bo'lib qoladi.
+**Qoida (hech qachon buzilmaydi):** ism faqat `classes/{classId}/students/{studentId}`da.
+Boshqa har qanday tool o'z ma'lumotini `studentId` orqali bog'laydi — shunda
+ism tuzatilsa, hamma tool'da avtomatik to'g'ri bo'lib qoladi.
+
+**Sinflar:** har o'qituvchi bir nechta sinfga ega bo'lishi mumkin, har birining
+o'z mustaqil o'quvchilar ro'yxati bor (`sinflar/` sahifasida boshqariladi).
+Root sahifada tanlangan sinf `teachers/{uid}.activeClassId` sifatida saqlanadi
+— shu "faol sinf"ni BARCHA tool'lar (`getActiveClass(uid)` orqali) avtomatik
+o'qiydi, alohida so'ramaydi.
 
 `firestore.rules`dagi qoida `teachers/{teacherId}/{document=**}` — recursive
 wildcard, ya'ni `teachers/{uid}` ostidagi HAR QANDAY collection va HAR QANDAY

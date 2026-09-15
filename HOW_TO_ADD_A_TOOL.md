@@ -3,10 +3,17 @@
 Bu loyiha shunday qurilganki, 1-chi tool ham, 100000-chi tool ham
 **bir xil 3 qadam** bilan qo'shiladi. Arxitektura o'zgarmaydi.
 
+**MUHIM QOIDA:** har qanday yangi tool **FAQAT `tools/` papkasi ichida**
+yaratiladi (`tools/tool-nomi/`), root darajasida EMAS. Sabab: root darajasi
+`login/`, `settings/`, `sinflar/` kabi core (tool bo'lmagan) sahifalar uchun
+band. Agar tool'lar ham root'ga tashlansa, ertaga core feature nomi bilan
+(masalan "students", "sinflar", "settings") to'qnashib qolish xavfi bor —
+`tools/` bitta joyga izolyatsiya qilingani shu muammoni butunlay yo'q qiladi.
+
 ## Qadam 1 — Papka va 2 fayl
 
 ```
-tool-nomi/
+tools/tool-nomi/
 ├── index.html   ← har doim shu qolipda, faqat <title> o'zgaradi:
 
 <!DOCTYPE html>
@@ -30,13 +37,21 @@ buzilgan deb hisoblanadi.
 
 ## Qadam 2 — app.js shablon
 
+`tools/tool-nomi/` — root'dan **2 qavat** pastda (`tool-nomi/` emas,
+`tools/tool-nomi/`), shuning uchun `mountToolShell`ga yo'llarni albatta
+qo'lda ko'rsat — default qiymatlar (`../shared` va h.k.) 1 qavat uchun
+mo'ljallangan, 2 qavatda ishlamaydi:
+
 ```js
-import { mountToolShell } from "../shared/shell.js";
-import { listStudents, /* kerakli data.js funksiyalari */ } from "../shared/data.js";
+import { mountToolShell } from "../../shared/shell.js";
+import { getActiveClass, listStudents, /* kerakli data.js funksiyalari */ } from "../../shared/data.js";
 
 const { user, container } = await mountToolShell({
   eyebrow: "Kategoriya nomi",
   title: `Tool <span>Nomi</span>`,
+  sharedPath: "../../shared",
+  rootPath: "../../index.html",
+  loginPath: "../../login/index.html",
 });
 
 container.innerHTML = `...faqat shu tool'ning HTML'i...`;
@@ -53,7 +68,7 @@ Sen faqat `container` ichiga o'z UI'ingni qo'yasan.
 
 ```js
 {
-  path: "tool-nomi/index.html",
+  path: "tools/tool-nomi/index.html",
   name: "Tool Nomi",
   desc: "Bir jumlada nima qilishi.",
   status: "ready",
@@ -67,8 +82,11 @@ Root sahifa (`index.html`) shu ro'yxatdan avtomatik grid quradi.
 
 ## Ma'lumot saqlash qoidasi (buzilmaydigan yagona qoida)
 
-- O'quvchi **ismi** kerakmi? → `shared/data.js`dagi `listStudents(uid)`.
-  Hech qachon ismni o'z collection'ingda qayta saqlama.
+- O'quvchi **ismi** kerakmi? → avval `getActiveClass(uid)` bilan hozirgi faol
+  sinfni ol (root sahifada tanlangan), keyin `listStudents(uid, activeClass.id)`.
+  Faol sinf `null` bo'lishi mumkin (hali tanlanmagan) — bu holatni albatta
+  UI'da ko'rsat ("Avval sinf tanlang" + bosh sahifaga link), aks holda tool
+  jim-jit ishlamay qoladi. Hech qachon ismni o'z collection'ingda qayta saqlama.
 - Tool'ga xos **bitta qavatli** narsa (baho, davomat, ...) kerakmi? → o'z
   collection'ing, lekin **studentId bilan bog'la**, ism bilan emas:
   `setToolDoc(uid, "mening-collectionim", studentId, {...})`.
