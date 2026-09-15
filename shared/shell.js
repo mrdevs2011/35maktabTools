@@ -1,6 +1,6 @@
 
-import { auth, db, doc, getDoc } from "./firebase-config.js";
 import { requireAuth, logout } from "./auth.js";
+import { getTeacherProfile } from "./data.js";
 
 const FONT_LINK_ID = "__mt_fonts";
 
@@ -42,9 +42,9 @@ export function mountToolShell(opts = {}) {
     showBack = true,
     showSettings = false,
     sharedPath = "../shared",
-    rootPath = "../index.html",
-    loginPath = "../login/index.html",
-    settingsPath = "../settings/index.html",
+    rootPath = "../",
+    loginPath = "../login/",
+    settingsPath = "../settings/",
   } = opts;
 
   ensureFonts();
@@ -77,9 +77,9 @@ export function mountToolShell(opts = {}) {
 
       if (!showBack) {
         try {
-          const profileSnap = await getDoc(doc(db, "teachers", user.uid));
+          const profile = await getTeacherProfile(user.uid);
           document.getElementById('__mt_userlabel').textContent =
-            profileSnap.exists() ? profileSnap.data().name : user.email;
+            profile ? profile.name : user.email;
         } catch {
           document.getElementById('__mt_userlabel').textContent = user.email;
         }

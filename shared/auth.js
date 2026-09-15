@@ -1,7 +1,7 @@
 
 import { auth, onAuthStateChanged, signOut } from "./firebase-config.js";
 
-export function requireAuth(onReady, loginPath = "login/index.html") {
+export function requireAuth(onReady, loginPath = "login/") {
   onAuthStateChanged(auth, (user) => {
     if (!user) {
       window.location.href = loginPath;
@@ -11,7 +11,7 @@ export function requireAuth(onReady, loginPath = "login/index.html") {
   });
 }
 
-export function logout(loginPath = "login/index.html") {
+export function logout(loginPath = "login/") {
   signOut(auth).then(() => {
     window.location.href = loginPath;
   });

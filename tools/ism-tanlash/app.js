@@ -5,8 +5,8 @@ const { user, container } = await mountToolShell({
   eyebrow: "O'quvchi tanlash",
   title: `Ism <span>Roulette</span>`,
   sharedPath: "../../shared",
-  rootPath: "../../index.html",
-  loginPath: "../../login/index.html",
+  rootPath: "../../",
+  loginPath: "../../login/",
 });
 
 const activeClass = await getActiveClass(user.uid);
@@ -14,12 +14,12 @@ const activeClass = await getActiveClass(user.uid);
 if (!activeClass) {
   container.innerHTML = `
     <div class="no-class-notice">
-      Hali faol sinf tanlanmagan. Avval <a href="../../index.html">bosh sahifada</a> sinf yarating yoki tanlang — shundan keyin bu yerda ishlaydi.
+      Hali faol sinf tanlanmagan. Avval <a href="../../">bosh sahifada</a> sinf yarating yoki tanlang — shundan keyin bu yerda ishlaydi.
     </div>
   `;
 } else {
   container.innerHTML = `
-    <p class="section-lead">Sinf: <strong>${activeClass.name}</strong> — <a href="../../index.html">almashtirish</a></p>
+    <p class="section-lead">Sinf: <strong>${activeClass.name}</strong> — <a href="../../">almashtirish</a></p>
     <div class="card">
       <div class="stage" id="stage">
         <div class="stage-empty" id="stageEmpty">Ismlarni kiriting va "Tanla" bosing</div>
@@ -97,20 +97,15 @@ if (!activeClass) {
     }
   }
 
-  async function saveStudents() {
-    saveBtn.disabled = true;
-    syncStatus.textContent = "Saqlanmoqda...";
-    syncStatus.className = "sync-status";
-    try {
-      await replaceStudents(user.uid, activeClass.id, parseNames());
-      syncStatus.textContent = "Saqlandi ✓";
-      syncStatus.className = "sync-status saved";
-    } catch (err) {
-      syncStatus.textContent = "Saqlashda xatolik: " + err.message;
-      syncStatus.className = "sync-status error";
-    } finally {
-      saveBtn.disabled = false;
-    }
+  // replaceStudents() Firestore javobini kutmaydi — localStorage'ga
+  // yozilgach shu zahoti qaytadi, shuning uchun bu yerda "Saqlanmoqda..."
+  // holati kerak emas, to'g'ridan-to'g'ri "Saqlandi ✓" ko'rsatiladi.
+  // Haqiqiy Firestore yozuvi orqa fonda ketadi, tarmoq o'chib qolsa ham
+  // ma'lumot localStorage'da qoladi va keyinroq avtomatik sinxronlanadi.
+  function saveStudents() {
+    replaceStudents(user.uid, activeClass.id, parseNames());
+    syncStatus.textContent = "Saqlandi ✓";
+    syncStatus.className = "sync-status saved";
   }
 
   saveBtn.addEventListener('click', saveStudents);
@@ -224,16 +219,12 @@ if (!activeClass) {
     });
   }
 
-  async function toggleExclude(studentId, excluded) {
+  function toggleExclude(studentId, excluded) {
     if (excluded) excludedIds.add(studentId);
     else excludedIds.delete(studentId);
 
-    try {
-      await setToolDoc(user.uid, "ism-tanlash-excluded", activeClass.id, { ids: [...excludedIds] });
-    } catch (err) {
-      syncStatus.textContent = "Saqlashda xatolik: " + err.message;
-      syncStatus.className = "sync-status error";
-    }
+    // setToolDoc darhol localStorage'ga yozadi, Firestore orqa fonda ketadi.
+    setToolDoc(user.uid, "ism-tanlash-excluded", activeClass.id, { ids: [...excludedIds] });
     syncFromTextarea();
   }
 

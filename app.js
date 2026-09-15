@@ -10,9 +10,9 @@ const { user, container } = await mountToolShell({
   showBack: false,
   showSettings: true,
   sharedPath: "./shared",
-  rootPath: "./index.html",
-  loginPath: "login/index.html",
-  settingsPath: "settings/index.html",
+  rootPath: "./",
+  loginPath: "login/",
+  settingsPath: "settings/",
 });
 
 let classes = await listClasses(user.uid);
@@ -45,7 +45,7 @@ container.insertAdjacentHTML('beforeend', `
     <span class="class-label">Faol sinf:</span>
     <select id="classSelect" ${classes.length === 0 ? 'disabled' : ''}>${classOptionsHTML()}</select>
     <button class="btn-ghost" id="newClassBtn" type="button">+ Yangi sinf</button>
-    <a class="manage-link" href="sinflar/index.html">Sinflarni boshqarish &rarr;</a>
+    <a class="manage-link" href="sinflar/">Sinflarni boshqarish &rarr;</a>
     <form class="new-class-form" id="newClassForm">
       <input type="text" id="newClassName" placeholder="Sinf nomi, masalan: 5-A" required>
       <button type="submit" class="btn-main">Yaratish</button>
@@ -56,12 +56,14 @@ container.insertAdjacentHTML('beforeend', `
   <footer>Muhammadrasul tomonidan, 35-maktab uchun.</footer>
 `);
 
-document.getElementById('classSelect').addEventListener('change', async (e) => {
+// Select o'zgarganda — darhol UI yangilanadi, Firestore yozuvi orqa fonda
+// ketadi (setActiveClass ichida), tugma/hech narsa kutib turmaydi.
+document.getElementById('classSelect').addEventListener('change', (e) => {
   const classId = e.target.value;
   if (!classId) return;
   const cls = classes.find(c => c.id === classId);
-  await setActiveClass(user.uid, classId, cls.name);
   activeClass = cls;
+  setActiveClass(user.uid, classId, cls.name);
 });
 
 document.getElementById('newClassBtn').addEventListener('click', () => {
@@ -74,9 +76,11 @@ document.getElementById('newClassForm').addEventListener('submit', async (e) => 
   const input = document.getElementById('newClassName');
   const name = input.value.trim();
   if (!name) return;
-  const submitBtn = e.target.querySelector('button[type="submit"]');
-  submitBtn.disabled = true;
+
+  // createClass/setActiveClass Firestore javobini kutmaydi — ikkalasi ham
+  // faqat localStorage'ga yozib bo'lgach qaytadi, shu zahoti keyingi
+  // sahifaga o'tamiz, Firestore yozuvi orqa fonda davom etadi.
   const classId = await createClass(user.uid, name);
   await setActiveClass(user.uid, classId, name);
-  window.location.href = `sinflar/index.html?classId=${classId}`;
+  window.location.href = `sinflar/?classId=${classId}`;
 });

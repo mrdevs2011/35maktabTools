@@ -1,14 +1,14 @@
 import { mountToolShell } from "../shared/shell.js";
 import {
-  auth, db, doc, getDoc, updateDoc, setDoc,
   updatePassword, reauthenticateWithCredential, EmailAuthProvider
 } from "../shared/firebase-config.js";
+import { getTeacherProfile, updateTeacherProfile } from "../shared/data.js";
 
 const { user, container } = await mountToolShell({
   eyebrow: "35MaktabTools",
   title: "Sozlamalar",
   layout: "page",
-  rootPath: "../index.html",
+  rootPath: "../",
 });
 
 container.innerHTML = `
@@ -50,18 +50,16 @@ container.innerHTML = `
 const nameInput = document.getElementById('name');
 const usernameInput = document.getElementById('username');
 const profileForm = document.getElementById('profileForm');
-const profileSubmit = document.getElementById('profileSubmit');
 const profileMsg = document.getElementById('profileMsg');
 
 const passwordForm = document.getElementById('passwordForm');
 const passwordSubmit = document.getElementById('passwordSubmit');
 const passwordMsg = document.getElementById('passwordMsg');
 
-const profileSnap = await getDoc(doc(db, "teachers", user.uid));
-if (profileSnap.exists()) {
-  const data = profileSnap.data();
-  nameInput.value = data.name || '';
-  usernameInput.value = data.username || '';
+const profile = await getTeacherProfile(user.uid);
+if (profile) {
+  nameInput.value = profile.name || '';
+  usernameInput.value = profile.username || '';
 }
 
 function showMsg(el, text, type){
@@ -70,28 +68,26 @@ function showMsg(el, text, type){
   el.style.display = 'block';
 }
 
-profileForm.addEventListener('submit', async (e) => {
+// Profil — Firestore'ga to'g'ridan-to'g'ri yozilmaydi, shared/data.js orqali
+// ketadi: darhol localStorage'ga tushadi, "Saqlandi" shu zahoti ko'rinadi,
+// haqiqiy Firestore yozuvi orqa fonda ketadi (fs o'chib qolsa ham ma'lumot
+// yo'qolmaydi, keyinroq avtomatik urinib ko'radi).
+profileForm.addEventListener('submit', (e) => {
   e.preventDefault();
   profileMsg.style.display = 'none';
-  profileSubmit.disabled = true;
 
   const name = nameInput.value.trim();
   if (!name) {
     showMsg(profileMsg, "Ism bo'sh bo'lishi mumkin emas.", 'error');
-    profileSubmit.disabled = false;
     return;
   }
 
-  try {
-    await setDoc(doc(db, "teachers", user.uid), { name }, { merge: true });
-    showMsg(profileMsg, "Saqlandi.", 'success');
-  } catch (err) {
-    showMsg(profileMsg, "Xatolik yuz berdi. Qayta urinib ko'ring.", 'error');
-  } finally {
-    profileSubmit.disabled = false;
-  }
+  updateTeacherProfile(user.uid, { name });
+  showMsg(profileMsg, "Saqlandi.", 'success');
 });
 
+// Parol — bu Firebase Auth amali, Firestore "ma'lumot" emas. Xavfsizlik
+// uchun optimistik qilinmaydi: serverdan haqiqiy tasdiq kelmaguncha kutamiz.
 passwordForm.addEventListener('submit', async (e) => {
   e.preventDefault();
   passwordMsg.style.display = 'none';

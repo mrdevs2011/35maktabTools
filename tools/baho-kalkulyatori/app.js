@@ -1,13 +1,13 @@
 import { mountToolShell } from "../../shared/shell.js";
-import { getActiveClass, listStudents, getToolDoc, setToolDoc, addToToolArray } from "../../shared/data.js";
+import { getActiveClass, listStudents, getToolDoc, addToToolArray } from "../../shared/data.js";
 
 const { user, container } = await mountToolShell({
   eyebrow: "Baholash",
   title: `Baho <span>kalkulyatori</span>`,
   width: "wide",
   sharedPath: "../../shared",
-  rootPath: "../../index.html",
-  loginPath: "../../login/index.html",
+  rootPath: "../../",
+  loginPath: "../../login/",
 });
 
 const activeClass = await getActiveClass(user.uid);
@@ -15,12 +15,12 @@ const activeClass = await getActiveClass(user.uid);
 if (!activeClass) {
   container.innerHTML = `
     <div class="no-class-notice">
-      Hali faol sinf tanlanmagan. Avval <a href="../../index.html">bosh sahifada</a> sinf yarating yoki tanlang — shundan keyin bu yerda ishlaydi.
+      Hali faol sinf tanlanmagan. Avval <a href="../../">bosh sahifada</a> sinf yarating yoki tanlang — shundan keyin bu yerda ishlaydi.
     </div>
   `;
 } else {
   container.innerHTML = `
-    <p class="section-lead">Sinf: <strong>${activeClass.name}</strong> — <a href="../../index.html">almashtirish</a></p>
+    <p class="section-lead">Sinf: <strong>${activeClass.name}</strong> — <a href="../../">almashtirish</a></p>
     <div class="card">
       <p class="section-lead">O'quvchini tanlang, baho kiriting — o'rtacha avtomatik hisoblanadi.</p>
       <label for="studentSelect">O'quvchi</label>
@@ -95,7 +95,12 @@ if (!activeClass) {
     avgValue.textContent = avg.toFixed(1);
   }
 
-  async function addScore() {
+  // addToToolArray endi setDoc(...,{merge:true}) + arrayUnion ishlatadi —
+  // hujjat mavjud bo'lmasa ham avtomatik yaratiladi, shuning uchun avval
+  // "bor-yo'qligini" tekshirish (getToolDoc chaqirish) kerak emas. Natijada
+  // bu funksiya hech qanday tarmoq javobini kutmaydi — darhol ishlaydi,
+  // Firestore yozuvi orqa fonda ketadi.
+  function addScore() {
     const studentId = studentSelect.value;
     const value = Number(scoreInput.value);
 
@@ -106,26 +111,13 @@ if (!activeClass) {
       return;
     }
 
-    addScoreBtn.disabled = true;
-    syncStatus.textContent = "Saqlanmoqda...";
-    syncStatus.className = "sync-status";
-    try {
-      const existing = await getToolDoc(user.uid, "grades", studentId);
-      if (!existing) {
-        await setToolDoc(user.uid, "grades", studentId, { scores: [value] });
-      } else {
-        await addToToolArray(user.uid, "grades", studentId, "scores", value);
-      }
-      scoreInput.value = '';
-      syncStatus.textContent = "Saqlandi ✓";
-      syncStatus.className = "sync-status saved";
-      await loadScoresForSelected();
-    } catch (err) {
-      syncStatus.textContent = "Saqlashda xatolik: " + err.message;
-      syncStatus.className = "sync-status error";
-    } finally {
-      addScoreBtn.disabled = false;
-    }
+    addToToolArray(user.uid, "grades", studentId, "scores", value).then((updated) => {
+      renderScores(updated.scores || []);
+    });
+
+    scoreInput.value = '';
+    syncStatus.textContent = "Saqlandi ✓";
+    syncStatus.className = "sync-status saved";
   }
 
   studentSelect.addEventListener('change', loadScoresForSelected);

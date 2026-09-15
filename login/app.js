@@ -13,7 +13,7 @@ const errorBox = document.getElementById('errorBox');
 let mode = 'signin';
 
 onAuthStateChanged(auth, (user) => {
-  if (user) window.location.href = "../index.html";
+  if (user) window.location.href = "../";
 });
 
 modeBtns.forEach(btn => {
@@ -93,7 +93,7 @@ form.addEventListener('submit', async (e) => {
         email
       });
     }
-    window.location.href = "../index.html";
+    window.location.href = "../";
   } catch (err) {
     showError(translateError(err.code));
     submitBtn.disabled = false;

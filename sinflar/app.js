@@ -31,16 +31,13 @@ container.innerHTML = `
 const classList = document.getElementById('classList');
 const newClassForm = document.getElementById('newClassForm');
 
-let classes = [];
-let activeClass = null;
+// Boshlang'ich yuklash — bu yagona joy qayerda haqiqatan Firestore/keshdan
+// kutamiz, chunki hali qo'lda hech narsa qilinmagan.
+let classes = await listClasses(user.uid);
+let activeClass = await getActiveClass(user.uid);
+let studentsByClass = {}; // classId -> student[] — sahifa davomida xotirada saqlanadi
 let openId = null;
 const preselectId = new URLSearchParams(window.location.search).get('classId');
-
-async function loadClasses() {
-  classes = await listClasses(user.uid);
-  activeClass = await getActiveClass(user.uid);
-  renderClasses();
-}
 
 function renderClasses() {
   if (classes.length === 0) {
@@ -68,26 +65,31 @@ function renderClasses() {
   });
 
   classList.querySelectorAll('[data-activate]').forEach(el => {
-    el.addEventListener('click', async (e) => {
+    el.addEventListener('click', (e) => {
       e.stopPropagation();
       const id = el.dataset.activate;
       const cls = classes.find(c => c.id === id);
-      await setActiveClass(user.uid, id, cls.name);
+      // Darhol UI: "Faol" belgisi shu zahoti shu tugma ustida ko'chadi.
       activeClass = cls;
+      setActiveClass(user.uid, id, cls.name);
       renderClasses();
       if (openId) document.getElementById(`body-${openId}`)?.classList.add('open');
     });
   });
 
   classList.querySelectorAll('[data-delete]').forEach(el => {
-    el.addEventListener('click', async (e) => {
+    el.addEventListener('click', (e) => {
       e.stopPropagation();
       const id = el.dataset.delete;
       const cls = classes.find(c => c.id === id);
       if (!confirm(`"${cls.name}" sinfini va undagi BARCHA o'quvchilarni o'chirmoqchimisiz? Bu qaytarilmaydi.`)) return;
-      await deleteClass(user.uid, id);
+
+      // Darhol ro'yxatdan olib tashlaymiz — Firestore'dagi cascade o'chirish orqa fonda ketadi.
+      classes = classes.filter(c => c.id !== id);
+      delete studentsByClass[id];
       if (openId === id) openId = null;
-      await loadClasses();
+      deleteClass(user.uid, id);
+      renderClasses();
     });
   });
 
@@ -107,14 +109,18 @@ async function toggleClass(classId) {
   openId = classId;
   const body = document.getElementById(`body-${classId}`);
   body.classList.add('open');
-  body.innerHTML = `<div class="empty-state">Yuklanmoqda...</div>`;
-  await renderStudents(classId);
+
+  if (!studentsByClass[classId]) {
+    body.innerHTML = `<div class="empty-state">Yuklanmoqda...</div>`;
+    studentsByClass[classId] = await listStudents(user.uid, classId);
+  }
+  renderStudents(classId);
 }
 
-async function renderStudents(classId) {
+function renderStudents(classId) {
   const body = document.getElementById(`body-${classId}`);
   if (!body) return;
-  const students = await listStudents(user.uid, classId);
+  const students = studentsByClass[classId] || [];
 
   body.innerHTML = `
     ${students.length === 0
@@ -133,13 +139,16 @@ async function renderStudents(classId) {
   `;
 
   body.querySelectorAll('[data-remove]').forEach(btn => {
-    btn.addEventListener('click', async () => {
-      await deleteStudent(user.uid, classId, btn.dataset.remove);
-      await renderStudents(classId);
+    btn.addEventListener('click', () => {
+      const id = btn.dataset.remove;
+      // Darhol ro'yxatdan olib tashlaymiz, orqa fonda Firestore'dan ham o'chadi.
+      studentsByClass[classId] = studentsByClass[classId].filter(s => s.id !== id);
+      deleteStudent(user.uid, classId, id);
+      renderStudents(classId);
     });
   });
 
-  body.querySelector('#addStudentForm').addEventListener('submit', async (e) => {
+  body.querySelector('#addStudentForm').addEventListener('submit', (e) => {
     e.preventDefault();
     const firstInput = body.querySelector('#firstName');
     const lastInput = body.querySelector('#lastName');
@@ -147,9 +156,14 @@ async function renderStudents(classId) {
     const last = lastInput.value.trim();
     if (!first) return;
     const fullName = last ? `${first} ${last}` : first;
-    await addStudent(user.uid, classId, fullName);
-    await renderStudents(classId);
-    body.querySelector('#firstName')?.focus();
+
+    // Darhol ro'yxatga qo'shamiz va qayta chizamiz — addStudent() Firestore
+    // javobini kutmaydi, id localStorage'ga yozilgach shu zahoti qaytadi.
+    addStudent(user.uid, classId, fullName).then((id) => {
+      studentsByClass[classId] = [...(studentsByClass[classId] || []), { id, name: fullName }];
+      renderStudents(classId);
+      body.querySelector('#firstName')?.focus();
+    });
   });
 }
 
@@ -158,21 +172,21 @@ newClassForm.addEventListener('submit', async (e) => {
   const input = document.getElementById('newClassName');
   const name = input.value.trim();
   if (!name) return;
-  const submitBtn = e.target.querySelector('button[type="submit"]');
-  submitBtn.disabled = true;
 
   const hadNoActiveClass = !activeClass;
   const classId = await createClass(user.uid, name);
   if (hadNoActiveClass) {
+    activeClass = { id: classId, name };
     await setActiveClass(user.uid, classId, name);
   }
+
+  classes = [...classes, { id: classId, name }];
   input.value = '';
-  submitBtn.disabled = false;
-  await loadClasses();
+  renderClasses();
   await toggleClass(classId);
 });
 
-await loadClasses();
+renderClasses();
 
 if (preselectId && classes.some(c => c.id === preselectId)) {
   await toggleClass(preselectId);
