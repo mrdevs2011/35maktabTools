@@ -16,9 +16,6 @@ Arxitektura, stillar, PWA/SW, nima qilish/qilmaslik — hammasi shu yerda.
 | Tool | Papka | Holat |
 |---|---|---|
 | Ism tanlash | [`tools/ism-tanlash/`](./tools/ism-tanlash) | ✅ Tayyor |
-| Baho kalkulyatori | [`tools/baho-kalkulyatori/`](./tools/baho-kalkulyatori) | ✅ Tayyor |
-| Davomat tracker | `davomat-tracker/` | 🔜 Rejada |
-| Jadval generator | `jadval-generator/` | 🔜 Rejada |
 
 (Bu jadval qo'lda yangilanadi hujjatlash uchun — haqiqiy manba
 `shared/tools-registry.js`, root sahifa shu yerdan quriladi.)

@@ -6,7 +6,7 @@
    CACHE_VERSION o'zgarsa eski kesh tozalanadi.
 */
 
-const CACHE_VERSION = 'mt-v3';
+const CACHE_VERSION = 'mt-v5';
 const SHELL_CACHE = `shell-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `runtime-${CACHE_VERSION}`;
 
@@ -35,9 +35,6 @@ const PRECACHE = [
   './tools/ism-tanlash/',
   './tools/ism-tanlash/index.html',
   './tools/ism-tanlash/app.js',
-  './tools/baho-kalkulyatori/',
-  './tools/baho-kalkulyatori/index.html',
-  './tools/baho-kalkulyatori/app.js',
   './assets/favicon.png',
   './assets/icon-192.png',
   './assets/icon-512.png',
