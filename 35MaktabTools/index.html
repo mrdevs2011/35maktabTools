@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>35MaktabTools</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #14172B;
+    --bg-soft: #1C2040;
+    --card: #20244A;
+    --gold: #F2B705;
+    --coral: #FF6B5B;
+    --text: #F1EEE4;
+    --text-dim: #9BA0C4;
+    --border: #33386B;
+  }
+  *{ box-sizing: border-box; }
+
+  html{
+    scrollbar-width: thin;
+    scrollbar-color: var(--gold) var(--bg-soft);
+  }
+  ::-webkit-scrollbar{
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track{
+    background: var(--bg-soft);
+  }
+  ::-webkit-scrollbar-thumb{
+    background: var(--border);
+    border-radius: 10px;
+    border: 2px solid var(--bg-soft);
+  }
+  ::-webkit-scrollbar-thumb:hover{
+    background: var(--gold);
+  }
+  ::-webkit-scrollbar-corner{
+    background: var(--bg-soft);
+  }
+
+  body{
+    margin:0;
+    min-height:100vh;
+    background: var(--bg);
+    background-image:
+      radial-gradient(circle at 15% 20%, rgba(242,183,5,0.08), transparent 40%),
+      radial-gradient(circle at 85% 80%, rgba(255,107,91,0.10), transparent 45%);
+    font-family: 'Inter', sans-serif;
+    color: var(--text);
+    padding: 48px 24px;
+  }
+  .wrap{
+    max-width: 760px;
+    margin: 0 auto;
+  }
+  .eyebrow{
+    font-family:'Space Grotesk', sans-serif;
+    font-size: 13px;
+    color: var(--text-dim);
+    margin-bottom: 8px;
+  }
+  h1{
+    font-family:'Space Grotesk', sans-serif;
+    font-size: 36px;
+    margin: 0 0 10px 0;
+    line-height: 1.1;
+  }
+  h1 span{ color: var(--gold); }
+  .lead{
+    color: var(--text-dim);
+    font-size: 15px;
+    margin: 0 0 40px 0;
+    max-width: 480px;
+    line-height: 1.6;
+  }
+
+  .grid{
+    display:grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 14px;
+  }
+
+  .tool-card{
+    display:block;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 20px;
+    text-decoration: none;
+    color: var(--text);
+    transition: border-color 0.15s ease, transform 0.1s ease;
+  }
+  .tool-card:hover{
+    border-color: var(--gold);
+    transform: translateY(-2px);
+  }
+  .tool-card.disabled{
+    opacity: 0.4;
+    cursor: default;
+    pointer-events: none;
+  }
+
+  .tool-status{
+    display:inline-flex;
+    align-items:center;
+    gap: 6px;
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-bottom: 12px;
+  }
+  .tool-status .dot{
+    width:6px; height:6px; border-radius:50%;
+    background: var(--coral);
+  }
+  .tool-status.ready .dot{ background: #6FCF97; }
+
+  .tool-name{
+    font-family:'Space Grotesk', sans-serif;
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+  .tool-desc{
+    font-size: 13px;
+    color: var(--text-dim);
+    line-height: 1.5;
+  }
+
+  footer{
+    margin-top: 48px;
+    font-size: 12px;
+    color: var(--text-dim);
+    border-top: 1px solid var(--border);
+    padding-top: 16px;
+  }
+
+  .topbar{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom: 28px;
+    font-size: 13px;
+    color: var(--text-dim);
+  }
+  .logout-btn{
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    padding: 7px 14px;
+    border-radius: 9px;
+    cursor: pointer;
+  }
+  .logout-btn:hover{ border-color: var(--coral); color: var(--text); }
+
+  .gate{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    min-height: 40vh;
+    color: var(--text-dim);
+    font-size: 14px;
+  }
+  .wrap{ display:none; }
+</style>
+</head>
+<body>
+
+<div class="gate" id="gate">Tekshirilmoqda...</div>
+
+<div class="wrap" id="appWrap">
+  <div class="topbar">
+    <span id="userEmail"></span>
+    <button class="logout-btn" id="logoutBtn">Chiqish</button>
+  </div>
+
+  <div class="eyebrow">35-maktab uchun</div>
+  <h1>35Maktab<span>Tools</span></h1>
+  <p class="lead">Maktab hayotini qulaylashtiradigan mustaqil tool'lar to'plami. Har biri o'z ishini qiladi — bittasini boshqasisiz ham ishlatasan.</p>
+
+  <div class="grid">
+    <a class="tool-card" href="ism-tanlash/index.html">
+      <div class="tool-status ready"><span class="dot"></span> Tayyor</div>
+      <div class="tool-name">Ism tanlash</div>
+      <div class="tool-desc">O'quvchilar ro'yxatidan random ism tanlaydi — darsda navbat yoki o'yin uchun.</div>
+    </a>
+
+    <div class="tool-card disabled">
+      <div class="tool-status"><span class="dot"></span> Rejada</div>
+      <div class="tool-name">Davomat tracker</div>
+      <div class="tool-desc">Kunlik davomatni qayd qilish va kuzatish.</div>
+    </div>
+
+    <div class="tool-card disabled">
+      <div class="tool-status"><span class="dot"></span> Rejada</div>
+      <div class="tool-name">Baho kalkulyatori</div>
+      <div class="tool-desc">Baholarni kiritib, o'rtacha va reytingni hisoblash.</div>
+    </div>
+
+    <div class="tool-card disabled">
+      <div class="tool-status"><span class="dot"></span> Rejada</div>
+      <div class="tool-name">Jadval generator</div>
+      <div class="tool-desc">Dars jadvalini avtomatik tuzish.</div>
+    </div>
+  </div>
+
+  <footer>Muhammadrasul tomonidan, 35-maktab uchun.</footer>
+</div>
+
+<script type="module">
+  import { requireAuth, logout } from "./auth.js";
+
+  const gate = document.getElementById('gate');
+  const appWrap = document.getElementById('appWrap');
+  const userEmail = document.getElementById('userEmail');
+  const logoutBtn = document.getElementById('logoutBtn');
+
+  requireAuth((user) => {
+    gate.style.display = 'none';
+    appWrap.style.display = 'block';
+    userEmail.textContent = user.email;
+  }, "login.html");
+
+  logoutBtn.addEventListener('click', () => logout("login.html"));
+</script>
+
+</body>
+</html>
