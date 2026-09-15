@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sozlamalar — 35MaktabTools</title>
+<link rel="icon" type="image/svg+xml" href="../assets/favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #14172B; --bg-soft: #1C2040; --card: #20244A;
+    --gold: #F2B705; --coral: #FF6B5B;
+    --text: #F1EEE4; --text-dim: #9BA0C4; --border: #33386B;
+  }
+  *{ box-sizing: border-box; }
+  html{ scrollbar-width: thin; scrollbar-color: var(--gold) var(--bg-soft); }
+  ::-webkit-scrollbar{ width: 10px; height: 10px; }
+  ::-webkit-scrollbar-track{ background: var(--bg-soft); }
+  ::-webkit-scrollbar-thumb{ background: var(--border); border-radius: 10px; border: 2px solid var(--bg-soft); }
+  ::-webkit-scrollbar-thumb:hover{ background: var(--gold); }
+
+  body{
+    margin:0; min-height:100vh;
+    background: var(--bg);
+    background-image:
+      radial-gradient(circle at 15% 20%, rgba(242,183,5,0.08), transparent 40%),
+      radial-gradient(circle at 85% 80%, rgba(255,107,91,0.10), transparent 45%);
+    font-family: 'Inter', sans-serif;
+    color: var(--text);
+    padding: 48px 24px;
+  }
+  .wrap{ max-width: 480px; margin: 0 auto; display:none; }
+
+  .topbar{
+    display:flex; justify-content:space-between; align-items:center;
+    margin-bottom: 28px; font-size: 13px; color: var(--text-dim);
+  }
+  .back-link{ color: var(--text-dim); text-decoration:none; }
+  .back-link:hover{ color: var(--gold); }
+
+  .eyebrow{ font-family:'Space Grotesk', sans-serif; font-size: 13px; color: var(--text-dim); margin-bottom: 6px; }
+  h1{ font-family:'Space Grotesk', sans-serif; font-size: 28px; margin: 0 0 6px 0; }
+  h1 span{ color: var(--gold); }
+  .section-lead{ color: var(--text-dim); font-size: 13px; margin: 0 0 20px 0; }
+
+  .card{ background: var(--card); border: 1px solid var(--border); border-radius: 18px; padding: 26px; margin-bottom: 20px; }
+  .card h2{ font-family:'Space Grotesk', sans-serif; font-size: 16px; margin: 0 0 16px 0; }
+
+  label{ display:block; font-size: 12px; color: var(--text-dim); margin: 14px 0 6px 0; }
+  label:first-of-type{ margin-top: 0; }
+  input{
+    width:100%; background: var(--bg-soft); border: 1px solid var(--border);
+    border-radius: 10px; color: var(--text); font-family:'Inter', sans-serif;
+    font-size: 14px; padding: 11px 13px;
+  }
+  input:focus{ outline:none; border-color: var(--gold); }
+  input:disabled{ opacity: 0.55; cursor: not-allowed; }
+  .hint{ font-size: 11px; color: var(--text-dim); margin-top: 6px; }
+
+  button.submit{
+    margin-top: 18px;
+    font-family:'Space Grotesk', sans-serif; font-size: 14px; font-weight: 700;
+    border:none; border-radius: 12px; padding: 11px 20px; cursor:pointer;
+    background: var(--gold); color: #14172B;
+  }
+  button.submit:disabled{ opacity: 0.5; cursor:not-allowed; }
+
+  .msg{
+    margin-top: 14px; padding: 11px 13px; border-radius: 10px;
+    font-size: 13px; display:none; line-height:1.5;
+  }
+  .msg.error{ background: rgba(255,107,91,0.12); border: 1px solid var(--coral); color: #FFB4A9; }
+  .msg.success{ background: rgba(111,207,151,0.12); border: 1px solid #6FCF97; color: #B7F0CC; }
+
+  .gate{
+    display:flex; align-items:center; justify-content:center;
+    min-height: 40vh; color: var(--text-dim); font-size: 14px;
+  }
+</style>
+</head>
+<body>
+
+<div class="gate" id="gate">Tekshirilmoqda...</div>
+
+<div class="wrap" id="appWrap">
+  <div class="topbar">
+    <a class="back-link" href="../index.html">&larr; Bosh sahifa</a>
+    <button class="settings-btn" id="logoutBtn" style="background:transparent;border:1px solid var(--border);color:var(--text-dim);font-family:'Inter',sans-serif;font-size:13px;padding:7px 14px;border-radius:9px;cursor:pointer;">Chiqish</button>
+  </div>
+
+  <div class="eyebrow">35MaktabTools</div>
+  <h1>Sozlamalar</h1>
+  <p class="section-lead">Profilingiz va hisob xavfsizligi shu yerda.</p>
+
+  <div class="card">
+    <h2>Profil</h2>
+    <form id="profileForm">
+      <label for="name">Ism-familiya</label>
+      <input type="text" id="name" required placeholder="Aziza Karimova">
+
+      <label for="username">Username</label>
+      <input type="text" id="username" disabled>
+      <div class="hint">Username hozircha o'zgartirib bo'lmaydi.</div>
+
+      <button type="submit" class="submit" id="profileSubmit">Saqlash</button>
+      <div class="msg" id="profileMsg"></div>
+    </form>
+  </div>
+
+  <div class="card">
+    <h2>Parolni almashtirish</h2>
+    <form id="passwordForm">
+      <label for="currentPassword">Joriy parol</label>
+      <input type="password" id="currentPassword" required>
+
+      <label for="newPassword">Yangi parol</label>
+      <input type="password" id="newPassword" required minlength="6" placeholder="kamida 6 belgi">
+
+      <label for="confirmPassword">Yangi parolni tasdiqlang</label>
+      <input type="password" id="confirmPassword" required minlength="6">
+
+      <button type="submit" class="submit" id="passwordSubmit">Parolni yangilash</button>
+      <div class="msg" id="passwordMsg"></div>
+    </form>
+  </div>
+</div>
+
+<script type="module">
+  import { requireAuth, logout } from "../auth.js";
+  import {
+    auth, db, doc, getDoc, updateDoc,
+    updatePassword, reauthenticateWithCredential, EmailAuthProvider
+  } from "../firebase-config.js";
+
+  const gate = document.getElementById('gate');
+  const appWrap = document.getElementById('appWrap');
+  const logoutBtn = document.getElementById('logoutBtn');
+
+  const nameInput = document.getElementById('name');
+  const usernameInput = document.getElementById('username');
+  const profileForm = document.getElementById('profileForm');
+  const profileSubmit = document.getElementById('profileSubmit');
+  const profileMsg = document.getElementById('profileMsg');
+
+  const passwordForm = document.getElementById('passwordForm');
+  const passwordSubmit = document.getElementById('passwordSubmit');
+  const passwordMsg = document.getElementById('passwordMsg');
+
+  let currentUser = null;
+
+  requireAuth(async (user) => {
+    currentUser = user;
+    gate.style.display = 'none';
+    appWrap.style.display = 'block';
+
+    const profileSnap = await getDoc(doc(db, "teachers", user.uid));
+    if (profileSnap.exists()) {
+      const data = profileSnap.data();
+      nameInput.value = data.name || '';
+      usernameInput.value = data.username || '';
+    }
+  }, "../login/index.html");
+
+  logoutBtn.addEventListener('click', () => logout("../login/index.html"));
+
+  function showMsg(el, text, type){
+    el.textContent = text;
+    el.className = `msg ${type}`;
+    el.style.display = 'block';
+  }
+
+  // --- Profil (ism) saqlash ---
+  profileForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    profileMsg.style.display = 'none';
+    profileSubmit.disabled = true;
+
+    const name = nameInput.value.trim();
+    if (!name) {
+      showMsg(profileMsg, "Ism bo'sh bo'lishi mumkin emas.", 'error');
+      profileSubmit.disabled = false;
+      return;
+    }
+
+    try {
+      await updateDoc(doc(db, "teachers", currentUser.uid), { name });
+      showMsg(profileMsg, "Saqlandi.", 'success');
+    } catch (err) {
+      showMsg(profileMsg, "Xatolik yuz berdi. Qayta urinib ko'ring.", 'error');
+    } finally {
+      profileSubmit.disabled = false;
+    }
+  });
+
+  // --- Parolni almashtirish ---
+  // Firebase xavfsizlik talabi: parolni o'zgartirishdan oldin joriy
+  // parol bilan qayta tasdiqlash (reauthenticate) shart, aks holda
+  // "requires-recent-login" xatosi chiqadi.
+  passwordForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    passwordMsg.style.display = 'none';
+
+    const currentPassword = document.getElementById('currentPassword').value;
+    const newPassword = document.getElementById('newPassword').value;
+    const confirmPassword = document.getElementById('confirmPassword').value;
+
+    if (newPassword !== confirmPassword) {
+      showMsg(passwordMsg, "Yangi parollar mos kelmadi.", 'error');
+      return;
+    }
+
+    passwordSubmit.disabled = true;
+    try {
+      const credential = EmailAuthProvider.credential(currentUser.email, currentPassword);
+      await reauthenticateWithCredential(currentUser, credential);
+      await updatePassword(currentUser, newPassword);
+      showMsg(passwordMsg, "Parol muvaffaqiyatli yangilandi.", 'success');
+      passwordForm.reset();
+    } catch (err) {
+      const message = err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential'
+        ? "Joriy parol noto'g'ri."
+        : "Xatolik yuz berdi. Qayta urinib ko'ring.";
+      showMsg(passwordMsg, message, 'error');
+    } finally {
+      passwordSubmit.disabled = false;
+    }
+  });
+</script>
+
+</body>
+</html>

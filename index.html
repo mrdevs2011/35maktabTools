@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>35MaktabTools</title>
+<link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
@@ -146,6 +147,24 @@
     font-size: 13px;
     color: var(--text-dim);
   }
+  .topbar-right{
+    display:flex;
+    align-items:center;
+    gap: 10px;
+  }
+  .settings-btn{
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    padding: 7px 14px;
+    border-radius: 9px;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-block;
+  }
+  .settings-btn:hover{ border-color: var(--gold); color: var(--text); }
   .logout-btn{
     background: transparent;
     border: 1px solid var(--border);
@@ -176,7 +195,10 @@
 <div class="wrap" id="appWrap">
   <div class="topbar">
     <span id="userEmail"></span>
-    <button class="logout-btn" id="logoutBtn">Chiqish</button>
+    <div class="topbar-right">
+      <a class="settings-btn" href="settings/index.html">Sozlamalar</a>
+      <button class="logout-btn" id="logoutBtn">Chiqish</button>
+    </div>
   </div>
 
   <div class="eyebrow">35-maktab uchun</div>
@@ -214,16 +236,25 @@
 
 <script type="module">
   import { requireAuth, logout } from "./auth.js";
+  import { db, doc, getDoc } from "./firebase-config.js";
 
   const gate = document.getElementById('gate');
   const appWrap = document.getElementById('appWrap');
   const userEmail = document.getElementById('userEmail');
   const logoutBtn = document.getElementById('logoutBtn');
 
-  requireAuth((user) => {
+  requireAuth(async (user) => {
     gate.style.display = 'none';
     appWrap.style.display = 'block';
-    userEmail.textContent = user.email;
+
+    // Fake email (username@35maktab.uz) o'rniga o'qituvchining haqiqiy
+    // ismini ko'rsatamiz — teachers/{uid} profil hujjatidan olamiz.
+    try {
+      const profileSnap = await getDoc(doc(db, "teachers", user.uid));
+      userEmail.textContent = profileSnap.exists() ? profileSnap.data().name : user.email;
+    } catch {
+      userEmail.textContent = user.email;
+    }
   }, "login/index.html");
 
   logoutBtn.addEventListener('click', () => logout("login/index.html"));
