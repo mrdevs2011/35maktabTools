@@ -106,28 +106,51 @@ async function execOp(op) {
   }
 }
 
+// permission-denied / unauthenticated — bular tarmoq muammosi emas, qayta
+// urinib ko'rish befoyda (rules doim rad etadi). Bunday yozuvni queue'da
+// abadiy saqlamasdan, "stuck" ro'yxatiga o'tkazamiz va foydalanuvchiga
+// signal beramiz — aks holda "Saqlandi ✓" ko'rsatilib, ma'lumot hech qachon
+// serverga bormaydi va hech kim buni bilmaydi.
+const FATAL_ERROR_CODES = new Set(["permission-denied", "unauthenticated", "invalid-argument"]);
+
 export async function flushQueue() {
   if (queueFlushing) return;
   queueFlushing = true;
   const queue = readQueue();
   const remaining = [];
+  const stuck = lsGet("stuck", []);
   for (const op of queue) {
     try {
       await execOp(op);
-    } catch {
-      remaining.push(op);
+    } catch (err) {
+      if (FATAL_ERROR_CODES.has(err?.code)) {
+        stuck.push({ ...op, _failedAt: Date.now(), _error: err.code });
+      } else {
+        remaining.push(op);
+      }
     }
   }
+  lsSet("stuck", stuck);
   writeQueue(remaining);
   queueFlushing = false;
   if (remaining.length && typeof window !== "undefined") {
-    // Firestore vaqtincha ishlamayapti — 15 soniyadan keyin yana urinamiz.
+    // Vaqtincha muammo (tarmoq/server) — 15 soniyadan keyin yana urinamiz.
     setTimeout(flushQueue, 15000);
+  }
+  if (typeof window !== "undefined" && stuck.length) {
+    window.dispatchEvent(new CustomEvent("mt-sync-stuck", { detail: { count: stuck.length } }));
   }
 }
 
 export function getPendingSyncCount() {
   return readQueue().length;
+}
+
+// Rules/permission sababli hech qachon serverga bormaydigan yozuvlar soni.
+// UI bularni ko'rsatib, foydalanuvchini ogohlantirishi kerak — bular
+// "keyinroq o'zi tuzaladigan" holat emas.
+export function getStuckSyncCount() {
+  return lsGet("stuck", []).length;
 }
 
 if (typeof window !== "undefined") {

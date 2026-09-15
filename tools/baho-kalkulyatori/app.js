@@ -1,5 +1,6 @@
 import { mountToolShell } from "../../shared/shell.js";
 import { getActiveClass, listStudents, getToolDoc, addToToolArray } from "../../shared/data.js";
+import { icon } from "../../shared/icons.js";
 
 const { user, container } = await mountToolShell({
   eyebrow: "Baholash",
@@ -30,14 +31,14 @@ if (!activeClass) {
       <input type="text" id="scoreInput" inputmode="numeric" placeholder="masalan: 87">
 
       <div class="btn-row">
-        <button class="btn-main" id="addScoreBtn">Qo'shish</button>
+        <button class="btn-main" id="addScoreBtn">${icon('plus', 16)} Qo'shish</button>
       </div>
 
       <div class="sync-status" id="syncStatus"></div>
     </div>
 
     <div class="card" id="resultCard" style="display:none;">
-      <h2>Natija</h2>
+      <h2 style="display:flex;align-items:center;gap:8px;">${icon('chart', 16)} Natija</h2>
       <div id="scoresList" style="color:var(--text-dim);font-size:14px;line-height:1.8;"></div>
       <div style="margin-top:14px;font-family:'Space Grotesk',sans-serif;font-size:20px;">
         O'rtacha: <span id="avgValue" style="color:var(--gold);"></span>

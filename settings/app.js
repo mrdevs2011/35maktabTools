@@ -1,8 +1,10 @@
 import { mountToolShell } from "../shared/shell.js";
+import { logout } from "../shared/auth.js";
 import {
   updatePassword, reauthenticateWithCredential, EmailAuthProvider
 } from "../shared/firebase-config.js";
 import { getTeacherProfile, updateTeacherProfile } from "../shared/data.js";
+import { icon } from "../shared/icons.js";
 
 const { user, container } = await mountToolShell({
   eyebrow: "35MaktabTools",
@@ -45,6 +47,11 @@ container.innerHTML = `
       <div class="msg" id="passwordMsg"></div>
     </form>
   </div>
+
+  <div class="card">
+    <h2>Hisob</h2>
+    <button type="button" class="logout-btn-full" id="logoutFullBtn">${icon('logout', 16)} Hisobdan chiqish</button>
+  </div>
 `;
 
 const nameInput = document.getElementById('name');
@@ -55,6 +62,10 @@ const profileMsg = document.getElementById('profileMsg');
 const passwordForm = document.getElementById('passwordForm');
 const passwordSubmit = document.getElementById('passwordSubmit');
 const passwordMsg = document.getElementById('passwordMsg');
+
+document.getElementById('logoutFullBtn').addEventListener('click', () => {
+  if (confirm("Hisobdan chiqmoqchimisiz?")) logout("../login/");
+});
 
 const profile = await getTeacherProfile(user.uid);
 if (profile) {

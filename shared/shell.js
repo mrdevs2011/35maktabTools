@@ -1,6 +1,7 @@
 
 import { requireAuth, logout } from "./auth.js";
 import { getTeacherProfile } from "./data.js";
+import { icon } from "./icons.js";
 
 const FONT_LINK_ID = "__mt_fonts";
 
@@ -33,6 +34,48 @@ function ensureTheme(sharedPath){
   document.head.appendChild(favicon);
 }
 
+// PWA/native-app signallari: manifest + apple/android meta'lar. Bularsiz
+// brauzer "Uy ekraniga qo'shish"ni taklif qilmaydi va status-bar rangi
+// standart oq/kulrang bo'lib qoladi — native emas, veb-sahifa ko'rinishida.
+function ensureNativeMeta(rootPath, sharedPath){
+  if (document.getElementById('__mt_manifest')) return;
+
+  const manifest = document.createElement('link');
+  manifest.id = '__mt_manifest';
+  manifest.rel = "manifest";
+  manifest.href = `${rootPath}manifest.json`;
+  document.head.appendChild(manifest);
+
+  const appleIcon = document.createElement('link');
+  appleIcon.rel = "apple-touch-icon";
+  appleIcon.href = `${sharedPath}/../assets/icon-192.png`;
+  document.head.appendChild(appleIcon);
+
+  const metas = [
+    ["theme-color", "#14172B"],
+    ["apple-mobile-web-app-capable", "yes"],
+    ["mobile-web-app-capable", "yes"],
+    ["apple-mobile-web-app-status-bar-style", "black-translucent"],
+    ["apple-mobile-web-app-title", "35Maktab"],
+  ];
+  metas.forEach(([name, content]) => {
+    const m = document.createElement('meta');
+    m.name = name;
+    m.content = content;
+    document.head.appendChild(m);
+  });
+
+  // viewport'ga viewport-fit=cover — safe-area-inset-* (notch/home-indicator)
+  // ishlashi uchun shart. index.html'dagi statik tegni to'ldiramiz, almashtiramiz.
+  let viewport = document.querySelector('meta[name="viewport"]');
+  if (!viewport) {
+    viewport = document.createElement('meta');
+    viewport.name = "viewport";
+    document.head.appendChild(viewport);
+  }
+  viewport.content = "width=device-width, initial-scale=1.0, viewport-fit=cover";
+}
+
 export function mountToolShell(opts = {}) {
   const {
     eyebrow = "",
@@ -49,16 +92,17 @@ export function mountToolShell(opts = {}) {
 
   ensureFonts();
   ensureTheme(sharedPath);
+  ensureNativeMeta(rootPath, sharedPath);
   document.body.classList.add(layout === "page" ? "layout-page" : "layout-center");
 
   document.body.insertAdjacentHTML('afterbegin', `
-    <div class="gate" id="__mt_gate">Tekshirilmoqda...</div>
+    <div class="gate" id="__mt_gate"><span class="spinner"></span></div>
     <div class="wrap ${width}" id="__mt_wrap">
       <div class="topbar">
-        ${showBack ? `<a class="back-link" href="${rootPath}">&larr; Barcha tool'lar</a>` : `<span id="__mt_userlabel"></span>`}
+        ${showBack ? `<a class="back-link" href="${rootPath}">${icon('back', 16)} Barcha tool'lar</a>` : `<span id="__mt_userlabel"></span>`}
         <div class="topbar-right">
-          ${showSettings ? `<a class="settings-btn" href="${settingsPath}">Sozlamalar</a>` : ``}
-          <button class="logout-btn" id="__mt_logout">Chiqish</button>
+          ${showSettings ? `<a class="settings-btn" href="${settingsPath}">${icon('settings', 15)} Sozlamalar</a>` : ``}
+          <button class="logout-btn" id="__mt_logout">${icon('logout', 15)} Chiqish</button>
         </div>
       </div>
       ${eyebrow ? `<div class="eyebrow">${eyebrow}</div>` : ``}

@@ -15,10 +15,13 @@
   --good: #6FCF97;
 }
 *{ box-sizing: border-box; }
+*{ -webkit-tap-highlight-color: transparent; } /* mobil brauzerdagi kulrang "bosildi" yaltirog'ini o'chiradi — native app'da bu yo'q */
 
 html{
   scrollbar-width: thin;
   scrollbar-color: var(--gold) var(--bg-soft);
+  height: 100%;
+  overscroll-behavior-y: none; /* pastga tortib "pull-to-refresh" qilishning oldini oladi — veb-sahifa emas, app kabi his qiladi */
 }
 ::-webkit-scrollbar{ width: 10px; height: 10px; }
 ::-webkit-scrollbar-track{ background: var(--bg-soft); }
@@ -29,14 +32,26 @@ textarea{ scrollbar-width: thin; scrollbar-color: var(--border) var(--bg-soft); 
 
 body{
   margin:0;
-  min-height:100vh;
+  min-height:100vh;   /* fallback eski brauzerlar uchun */
+  min-height:100dvh;  /* 100vh emas — mobil brauzer manzil-panelining chiqib/kirishida sakramaydi */
   background: var(--bg);
   background-image:
     radial-gradient(circle at 15% 20%, rgba(242,183,5,0.08), transparent 40%),
     radial-gradient(circle at 85% 80%, rgba(255,107,91,0.10), transparent 45%);
   font-family: 'Inter', sans-serif;
   color: var(--text);
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior-y: none;
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
 }
+
+/* Sahifadan-sahifaga o'tish paytida oq/qora "yaltirash"ni yumshatadi
+   (Chrome/Edge'da qo'llab-quvvatlanadi, boshqa brauzerlarda jim e'tiborsiz
+   qoldiriladi — hech narsa buzilmaydi). */
+@view-transition{ navigation: auto; }
 
 /* ---------- Layout shells ---------- */
 body.layout-center{
@@ -51,6 +66,15 @@ body.layout-page{ padding: 48px 24px; }
   display:flex; align-items:center; justify-content:center;
   min-height: 40vh; color: var(--text-dim); font-size: 14px;
 }
+.spinner{
+  width: 22px; height: 22px; border-radius: 50%;
+  border: 2px solid var(--border); border-top-color: var(--gold);
+  animation: mt-spin 0.7s linear infinite;
+}
+@keyframes mt-spin{ to{ transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce){
+  .spinner{ animation-duration: 1.6s; }
+}
 
 /* ---------- Topbar (injected by shell.js) ---------- */
 .topbar{
@@ -58,8 +82,9 @@ body.layout-page{ padding: 48px 24px; }
   margin-bottom: 20px; font-size: 13px; color: var(--text-dim);
 }
 .topbar-right{ display:flex; align-items:center; gap: 10px; }
-.back-link{ color: var(--text-dim); text-decoration:none; font-size: 13px; }
+.back-link{ color: var(--text-dim); text-decoration:none; font-size: 13px; touch-action: manipulation; user-select: none; -webkit-user-select: none; display: inline-flex; align-items: center; gap: 4px; }
 .back-link:hover{ color: var(--gold); }
+.back-link:active{ opacity: 0.6; }
 
 /* ---------- Buttons ---------- */
 button{
@@ -67,25 +92,40 @@ button{
   font-size: 15px; font-weight: 700;
   border: none; border-radius: 12px; padding: 13px 18px;
   cursor: pointer;
+  touch-action: manipulation; /* 300ms tap-kechikishi va ikki marta bosib zoom qilishning oldini oladi */
+  user-select: none; -webkit-user-select: none;
   transition: transform 0.05s ease, opacity 0.15s ease;
 }
 button:active{ transform: scale(0.97); }
 button:disabled{ opacity: 0.4; cursor: not-allowed; }
 
-.btn-main{ flex: 1; background: var(--gold); color: #14172B; }
-.btn-ghost{ background: transparent; border: 1px solid var(--border); color: var(--text-dim); }
+.btn-main{ flex: 1; background: var(--gold); color: #14172B; display: inline-flex; align-items: center; justify-content: center; gap: 7px; }
+.btn-ghost{ background: transparent; border: 1px solid var(--border); color: var(--text-dim); display: inline-flex; align-items: center; justify-content: center; gap: 7px; }
 .btn-ghost:hover{ border-color: var(--coral); color: var(--text); }
-.btn-save{ flex:1; background: var(--bg-soft); border: 1px solid var(--gold); color: var(--gold); }
+.btn-save{ flex:1; background: var(--bg-soft); border: 1px solid var(--gold); color: var(--gold); display: inline-flex; align-items: center; justify-content: center; gap: 7px; }
 .btn-save:hover{ background: rgba(242,183,5,0.1); }
 
 .settings-btn, .logout-btn{
   background: transparent; border: 1px solid var(--border); color: var(--text-dim);
   font-family: 'Inter', sans-serif; font-size: 13px;
   padding: 7px 14px; border-radius: 9px; cursor: pointer;
-  text-decoration: none; display: inline-block;
+  text-decoration: none; display: inline-flex; align-items: center; gap: 6px;
+  touch-action: manipulation; user-select: none; -webkit-user-select: none;
+  transition: transform 0.05s ease, border-color 0.15s ease, color 0.15s ease;
 }
 .settings-btn:hover, .logout-btn:hover{ border-color: var(--gold); color: var(--text); }
 .logout-btn:hover{ border-color: var(--coral); }
+.settings-btn:active, .logout-btn:active{ transform: scale(0.96); }
+
+/* Settings sahifasidagi "Hisobdan chiqish" — logout-btn'dan farqli, katta va aniq */
+.logout-btn-full{
+  width: 100%; background: transparent; border: 1px solid var(--coral); color: var(--coral);
+  font-family: 'Space Grotesk', sans-serif; font-size: 14px; font-weight: 700;
+  padding: 13px 18px; border-radius: 12px; cursor: pointer; margin-top: 6px;
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+}
+.logout-btn-full:hover{ background: rgba(255,107,91,0.12); }
+.logout-btn-full:active{ transform: scale(0.98); }
 
 /* ---------- Typography ---------- */
 .eyebrow{
@@ -114,6 +154,7 @@ textarea:focus, input:focus{ outline: none; border-color: var(--gold); }
 textarea::placeholder, input::placeholder{ color: var(--text-dim); }
 
 .toggle{ display:flex; align-items:center; gap: 8px; cursor: pointer; user-select: none; }
+.toggle .icon{ color: var(--text-dim); }
 .toggle input{ accent-color: var(--coral); width:15px; height:15px; }
 
 .meta-row{
@@ -130,14 +171,19 @@ textarea::placeholder, input::placeholder{ color: var(--text-dim); }
 .dot{ width:6px; height:6px; border-radius:50%; background: var(--coral); }
 .pool-count{ font-size: 13px; color: var(--text-dim); margin-top: 14px; display:flex; align-items:center; gap: 6px; }
 
+.icon{ display:inline-block; vertical-align: middle; flex-shrink: 0; }
+.icon-btn{ display:inline-flex; align-items:center; gap: 6px; }
+
 /* ---------- Tool grid (root page) ---------- */
 .grid{ display:grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; }
 .tool-card{
   display:block; background: var(--card); border: 1px solid var(--border);
   border-radius: 16px; padding: 20px; text-decoration: none; color: var(--text);
+  touch-action: manipulation; user-select: none; -webkit-user-select: none;
   transition: border-color 0.15s ease, transform 0.1s ease;
 }
 .tool-card:hover{ border-color: var(--gold); transform: translateY(-2px); }
+.tool-card:active{ transform: scale(0.98); }
 .tool-card.disabled{ opacity: 0.4; cursor: default; pointer-events: none; }
 .tool-status{ display:inline-flex; align-items:center; gap: 6px; font-size: 11px; color: var(--text-dim); margin-bottom: 12px; }
 .tool-status .dot{ background: var(--coral); }
@@ -199,8 +245,11 @@ button.submit:disabled{ opacity: 0.5; cursor:not-allowed; }
   background: var(--card); border: 1px solid var(--border); border-radius: 16px;
   padding: 18px 20px; margin-bottom: 12px;
 }
-.class-card-head{ display:flex; align-items:center; justify-content:space-between; gap: 10px; cursor:pointer; }
-.class-card-name{ font-family:'Space Grotesk', sans-serif; font-size: 17px; font-weight: 700; }
+.class-card-head{ display:flex; align-items:center; justify-content:space-between; gap: 10px; cursor:pointer; touch-action: manipulation; user-select: none; -webkit-user-select: none; }
+.class-card-head:active{ opacity: 0.75; }
+.class-card-name{ font-family:'Space Grotesk', sans-serif; font-size: 17px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+.class-card-name .icon{ color: var(--text-dim); transition: transform 0.15s ease; }
+.class-card-head.is-open .class-card-name .icon{ transform: rotate(180deg); color: var(--gold); }
 .class-card-actions{ display:flex; align-items:center; gap: 8px; }
 .badge-active{
   font-size: 11px; font-weight: 700; color: #14172B; background: var(--gold);
@@ -209,22 +258,30 @@ button.submit:disabled{ opacity: 0.5; cursor:not-allowed; }
 .btn-small{
   font-size: 12px; padding: 7px 12px; border-radius: 8px; font-family:'Space Grotesk', sans-serif; font-weight: 700;
   background: transparent; border: 1px solid var(--border); color: var(--text-dim); cursor:pointer;
+  display: inline-flex; align-items: center; gap: 5px;
+  touch-action: manipulation; user-select: none; -webkit-user-select: none;
+  transition: transform 0.05s ease, border-color 0.15s ease, color 0.15s ease;
 }
 .btn-small:hover{ border-color: var(--gold); color: var(--text); }
+.btn-small:active{ transform: scale(0.95); }
 .btn-small.danger:hover{ border-color: var(--coral); color: #FFB4A9; }
 
 .class-body{ margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border); display:none; }
-.class-body.open{ display:block; }
+.class-body.open{ display:block; animation: mt-expand 0.16s ease; }
+@keyframes mt-expand{ from{ opacity: 0; transform: translateY(-4px); } to{ opacity: 1; transform: translateY(0); } }
 
 .student-row{
   display:flex; align-items:center; justify-content:space-between;
   padding: 9px 2px; border-bottom: 1px solid var(--border); font-size: 14px;
 }
 .student-row:last-child{ border-bottom:none; }
+.student-num{ color: var(--text-dim); margin-right: 4px; }
 .student-remove{
   background:none; border:none; color: var(--text-dim); cursor:pointer; font-size: 17px; padding: 2px 8px; line-height: 1;
+  touch-action: manipulation;
 }
 .student-remove:hover{ color: var(--coral); }
+.student-remove:active{ transform: scale(0.85); }
 
 .add-student-form{ display:flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
 .add-student-form input{ flex:1; min-width: 120px; }
@@ -236,3 +293,59 @@ button.submit:disabled{ opacity: 0.5; cursor:not-allowed; }
   padding: 24px; text-align:center; color: var(--text-dim); font-size: 14px; line-height: 1.6;
 }
 .no-class-notice a{ color: var(--gold); }
+
+/* ============================================================
+   RESPONSIVE — butun app uchun
+   ============================================================ */
+@media (max-width: 640px){
+  body.layout-center{ padding: 16px; align-items: flex-start; padding-top: 32px; }
+  body.layout-page{ padding: 24px 16px; }
+
+  .wrap, .wrap.wide{ max-width: 100%; }
+
+  h1{ font-size: 24px; margin-bottom: 16px; }
+  .wrap.wide h1{ font-size: 26px; }
+  .lead{ font-size: 14px; margin-bottom: 28px; }
+
+  .card{ padding: 18px; border-radius: 14px; }
+
+  /* Topbar: kichik ekranda tugmalar torlashadi, matn qisqaradi */
+  .topbar{ font-size: 12px; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+  .topbar-right{ gap: 6px; }
+  .settings-btn, .logout-btn{ padding: 6px 10px; font-size: 12px; }
+
+  /* Tugmalar qatori: mobil'da tekis tortiladi, siqilib ketmaydi */
+  .btn-row{ flex-wrap: wrap; }
+  .btn-row button{ flex: 1 1 auto; min-width: 100px; }
+
+  /* Class bar: select va tugmalar tepa-past bo'lib joylashadi */
+  .class-bar{ flex-direction: column; align-items: stretch; gap: 8px; }
+  .class-bar select{ width: 100%; }
+  .class-bar .manage-link{ margin-left: 0; text-align: center; }
+  .new-class-form{ flex-direction: column; }
+
+  /* Tool grid: bitta ustunga tushadi */
+  .grid{ grid-template-columns: 1fr; gap: 12px; }
+
+  /* Sinf kartasi: aksiyalar pastga tushmasin, lekin torayadi */
+  .class-card-head{ flex-wrap: wrap; }
+  .class-card-actions{ flex-wrap: wrap; gap: 6px; }
+
+  /* O'quvchi qo'shish formasi: input'lar bo'sh joyni to'ldiradi */
+  .add-student-form{ flex-direction: column; }
+  .add-student-form input{ width: 100%; }
+
+  /* Stage (ism-tanlash) — kichik ekranda balandligi kamayadi, shrift torayadi */
+  .stage{ height: 90px; }
+  .stage-name{ font-size: 24px; }
+
+  textarea, input[type="text"], input[type="password"], input[type="email"]{
+    font-size: 16px; /* iOS Safari 16px dan kichik bo'lsa avtomatik zoom qiladi — oldini olamiz */
+  }
+}
+
+@media (max-width: 380px){
+  h1{ font-size: 21px; }
+  .card{ padding: 14px; }
+  .btn-row button{ min-width: 80px; font-size: 13px; padding: 11px 12px; }
+}

@@ -3,6 +3,7 @@ import {
   listClasses, createClass, deleteClass, getActiveClass, setActiveClass,
   listStudents, addStudent, deleteStudent,
 } from "../shared/data.js";
+import { icon } from "../shared/icons.js";
 
 const { user, container } = await mountToolShell({
   eyebrow: "35MaktabTools",
@@ -20,7 +21,7 @@ container.innerHTML = `
       <label for="newClassName">Sinf nomi</label>
       <input type="text" id="newClassName" required placeholder="masalan: 5-A">
       <div class="btn-row">
-        <button type="submit" class="btn-main">Qo'shish</button>
+        <button type="submit" class="btn-main">${icon('plus', 16)} Qo'shish</button>
       </div>
     </form>
   </div>
@@ -46,14 +47,14 @@ function renderClasses() {
   }
 
   classList.innerHTML = classes.map(c => `
-    <div class="class-card">
+    <div class="class-card ${openId === c.id ? 'open' : ''}">
       <div class="class-card-head" data-toggle="${c.id}">
-        <div class="class-card-name">${c.name}</div>
+        <div class="class-card-name">${icon('chevronDown', 16)} ${c.name}</div>
         <div class="class-card-actions">
           ${activeClass && activeClass.id === c.id
-            ? `<span class="badge-active">Faol</span>`
-            : `<button class="btn-small" data-activate="${c.id}" type="button">Faol qilish</button>`}
-          <button class="btn-small danger" data-delete="${c.id}" type="button">O'chirish</button>
+            ? `<span class="badge-active">${icon('check', 12)} Faol</span>`
+            : `<button class="btn-small" data-activate="${c.id}" type="button">${icon('check', 13)} Faol qilish</button>`}
+          <button class="btn-small danger" data-delete="${c.id}" type="button" aria-label="Sinfni o'chirish">${icon('trash', 13)}</button>
         </div>
       </div>
       <div class="class-body" id="body-${c.id}"></div>
@@ -95,6 +96,7 @@ function renderClasses() {
 
   if (openId && classes.some(c => c.id === openId)) {
     document.getElementById(`body-${openId}`)?.classList.add('open');
+    document.querySelector(`[data-toggle="${openId}"]`)?.classList.add('is-open');
     renderStudents(openId);
   }
 }
@@ -102,13 +104,18 @@ function renderClasses() {
 async function toggleClass(classId) {
   if (openId === classId) {
     document.getElementById(`body-${classId}`)?.classList.remove('open');
+    document.querySelector(`[data-toggle="${classId}"]`)?.classList.remove('is-open');
     openId = null;
     return;
   }
-  if (openId) document.getElementById(`body-${openId}`)?.classList.remove('open');
+  if (openId) {
+    document.getElementById(`body-${openId}`)?.classList.remove('open');
+    document.querySelector(`[data-toggle="${openId}"]`)?.classList.remove('is-open');
+  }
   openId = classId;
   const body = document.getElementById(`body-${classId}`);
   body.classList.add('open');
+  document.querySelector(`[data-toggle="${classId}"]`)?.classList.add('is-open');
 
   if (!studentsByClass[classId]) {
     body.innerHTML = `<div class="empty-state">Yuklanmoqda...</div>`;
@@ -125,16 +132,16 @@ function renderStudents(classId) {
   body.innerHTML = `
     ${students.length === 0
       ? `<div class="empty-state">Hali o'quvchi yo'q — pastdan qo'shing.</div>`
-      : students.map(s => `
+      : students.map((s, i) => `
           <div class="student-row">
-            <span>${s.name}</span>
-            <button class="student-remove" data-remove="${s.id}" type="button">&times;</button>
+            <span><span class="student-num">${i + 1}.</span> ${s.name}</span>
+            <button class="student-remove" data-remove="${s.id}" type="button" aria-label="O'chirish">${icon('close', 15)}</button>
           </div>
         `).join('')}
     <form class="add-student-form" id="addStudentForm">
       <input type="text" id="firstName" placeholder="Ism" required>
       <input type="text" id="lastName" placeholder="Familya">
-      <button type="submit" class="btn-small">Qo'shish</button>
+      <button type="submit" class="btn-small">${icon('plus', 13)} Qo'shish</button>
     </form>
   `;
 

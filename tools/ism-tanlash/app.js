@@ -1,5 +1,6 @@
 import { mountToolShell } from "../../shared/shell.js";
 import { getActiveClass, listStudents, replaceStudents, getToolDoc, setToolDoc } from "../../shared/data.js";
+import { icon } from "../../shared/icons.js";
 
 const { user, container } = await mountToolShell({
   eyebrow: "O'quvchi tanlash",
@@ -36,10 +37,10 @@ if (!activeClass) {
       </div>
 
       <div class="btn-row">
-        <button class="btn-save" id="saveBtn">Saqlash</button>
-        <button class="btn-main" id="pickBtn">Tanla</button>
-        <button class="btn-ghost" id="resetBtn">Qayta yuklash</button>
-        <button class="btn-ghost" id="excludeToggleBtn" type="button">O'quvchi chiqarib yuborish</button>
+        <button class="btn-save" id="saveBtn">${icon('check', 15)} Saqlash</button>
+        <button class="btn-main" id="pickBtn">${icon('shuffle', 16)} Tanla</button>
+        <button class="btn-ghost" id="resetBtn">${icon('close', 15)} Qayta yuklash</button>
+        <button class="btn-ghost" id="excludeToggleBtn" type="button">${icon('users', 15)} O'quvchi chiqarib yuborish</button>
       </div>
 
       <div class="sync-status" id="syncStatus"></div>
@@ -208,7 +209,8 @@ if (!activeClass) {
     excludeList.innerHTML = studentsWithId.map(s => `
       <div class="student-row">
         <span>${s.name}</span>
-        <label class="toggle">
+        <label class="toggle" title="${excludedIds.has(s.id) ? 'Chiqarib yuborilgan' : 'Ro\'yxatda'}">
+          ${excludedIds.has(s.id) ? icon('eyeOff', 16) : icon('eye', 16)}
           <input type="checkbox" data-exclude-toggle="${s.id}" ${excludedIds.has(s.id) ? '' : 'checked'}>
         </label>
       </div>
