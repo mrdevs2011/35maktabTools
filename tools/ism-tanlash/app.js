@@ -98,13 +98,16 @@ if (!activeClass) {
     }
   }
 
-  // replaceStudents() Firestore javobini kutmaydi — localStorage'ga
-  // yozilgach shu zahoti qaytadi, shuning uchun bu yerda "Saqlanmoqda..."
-  // holati kerak emas, to'g'ridan-to'g'ri "Saqlandi ✓" ko'rsatiladi.
-  // Haqiqiy Firestore yozuvi orqa fonda ketadi, tarmoq o'chib qolsa ham
-  // ma'lumot localStorage'da qoladi va keyinroq avtomatik sinxronlanadi.
+  // "Saqlandi ✓" darhol ko'rsatiladi (optimistik UI), replaceStudents()
+  // promise'i await qilinmaydi. Tarmoq o'chib qolsa, Firestore'ning o'z
+  // IndexedDb navbati ma'lumotni saqlab turadi va internet qaytganda
+  // avtomatik sinxronlaydi. Xato chiqsa (masalan ruxsat rad etilsa),
+  // .catch() "Saqlandi ✓" xabarini "Saqlanmadi: ..." bilan almashtiradi.
   function saveStudents() {
-    replaceStudents(user.uid, activeClass.id, parseNames());
+    replaceStudents(user.uid, activeClass.id, parseNames()).catch(err => {
+      syncStatus.textContent = "Saqlanmadi: " + err.message;
+      syncStatus.className = "sync-status error";
+    });
     syncStatus.textContent = "Saqlandi ✓";
     syncStatus.className = "sync-status saved";
   }
@@ -225,8 +228,11 @@ if (!activeClass) {
     if (excluded) excludedIds.add(studentId);
     else excludedIds.delete(studentId);
 
-    // setToolDoc darhol localStorage'ga yozadi, Firestore orqa fonda ketadi.
-    setToolDoc(user.uid, "ism-tanlash-excluded", activeClass.id, { ids: [...excludedIds] });
+    setToolDoc(user.uid, "ism-tanlash-excluded", activeClass.id, { ids: [...excludedIds] })
+      .catch(err => {
+        syncStatus.textContent = "Saqlanmadi: " + err.message;
+        syncStatus.className = "sync-status error";
+      });
     syncFromTextarea();
   }
 

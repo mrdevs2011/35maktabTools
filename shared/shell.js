@@ -1,5 +1,5 @@
 
-import { requireAuth, logout } from "./auth.js";
+import { requireAuth } from "./auth.js";
 import { getTeacherProfile } from "./data.js";
 import { icon } from "./icons.js";
 
@@ -102,7 +102,6 @@ export function mountToolShell(opts = {}) {
         ${showBack ? `<a class="back-link" href="${rootPath}">${icon('back', 16)} Barcha tool'lar</a>` : `<span id="__mt_userlabel"></span>`}
         <div class="topbar-right">
           ${showSettings ? `<a class="settings-btn" href="${settingsPath}">${icon('settings', 15)} Sozlamalar</a>` : ``}
-          <button class="logout-btn" id="__mt_logout">${icon('logout', 15)} Chiqish</button>
         </div>
       </div>
       ${eyebrow ? `<div class="eyebrow">${eyebrow}</div>` : ``}
@@ -110,9 +109,6 @@ export function mountToolShell(opts = {}) {
       <div id="__mt_app"></div>
     </div>
   `);
-
-  document.getElementById('__mt_logout')
-    .addEventListener('click', () => logout(loginPath));
 
   return new Promise((resolve) => {
     requireAuth(async (user) => {

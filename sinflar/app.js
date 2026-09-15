@@ -72,7 +72,9 @@ function renderClasses() {
       const cls = classes.find(c => c.id === id);
       // Darhol UI: "Faol" belgisi shu zahoti shu tugma ustida ko'chadi.
       activeClass = cls;
-      setActiveClass(user.uid, id, cls.name);
+      setActiveClass(user.uid, id, cls.name).catch(err => {
+        alert("Faol sinfni saqlab bo'lmadi: " + err.message);
+      });
       renderClasses();
       if (openId) document.getElementById(`body-${openId}`)?.classList.add('open');
     });
@@ -89,7 +91,9 @@ function renderClasses() {
       classes = classes.filter(c => c.id !== id);
       delete studentsByClass[id];
       if (openId === id) openId = null;
-      deleteClass(user.uid, id);
+      deleteClass(user.uid, id).catch(err => {
+        alert("Sinfni o'chirib bo'lmadi: " + err.message);
+      });
       renderClasses();
     });
   });
@@ -150,7 +154,9 @@ function renderStudents(classId) {
       const id = btn.dataset.remove;
       // Darhol ro'yxatdan olib tashlaymiz, orqa fonda Firestore'dan ham o'chadi.
       studentsByClass[classId] = studentsByClass[classId].filter(s => s.id !== id);
-      deleteStudent(user.uid, classId, id);
+      deleteStudent(user.uid, classId, id).catch(err => {
+        alert("O'quvchini o'chirib bo'lmadi: " + err.message);
+      });
       renderStudents(classId);
     });
   });
@@ -170,6 +176,8 @@ function renderStudents(classId) {
       studentsByClass[classId] = [...(studentsByClass[classId] || []), { id, name: fullName }];
       renderStudents(classId);
       body.querySelector('#firstName')?.focus();
+    }).catch(err => {
+      alert("O'quvchini saqlab bo'lmadi: " + err.message);
     });
   });
 }
@@ -180,11 +188,17 @@ newClassForm.addEventListener('submit', async (e) => {
   const name = input.value.trim();
   if (!name) return;
 
-  const hadNoActiveClass = !activeClass;
-  const classId = await createClass(user.uid, name);
-  if (hadNoActiveClass) {
-    activeClass = { id: classId, name };
-    await setActiveClass(user.uid, classId, name);
+  let classId;
+  try {
+    const hadNoActiveClass = !activeClass;
+    classId = await createClass(user.uid, name);
+    if (hadNoActiveClass) {
+      activeClass = { id: classId, name };
+      await setActiveClass(user.uid, classId, name);
+    }
+  } catch (err) {
+    alert("Yangi sinf yaratib bo'lmadi: " + err.message);
+    return;
   }
 
   classes = [...classes, { id: classId, name }];

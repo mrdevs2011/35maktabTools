@@ -20,7 +20,7 @@ container.innerHTML = `
     <h2>Profil</h2>
     <form id="profileForm">
       <label for="name">Ism-familiya</label>
-      <input type="text" id="name" required placeholder="Aziza Karimova">
+      <input type="text" id="name" required placeholder="Ism va familiyangiz">
 
       <label for="username">Username</label>
       <input type="text" id="username" disabled>
@@ -67,22 +67,32 @@ document.getElementById('logoutFullBtn').addEventListener('click', () => {
   if (confirm("Hisobdan chiqmoqchimisiz?")) logout("../login/");
 });
 
-const profile = await getTeacherProfile(user.uid);
-if (profile) {
-  nameInput.value = profile.name || '';
-  usernameInput.value = profile.username || '';
-}
-
 function showMsg(el, text, type){
   el.textContent = text;
   el.className = `msg ${type}`;
   el.style.display = 'block';
 }
 
-// Profil — Firestore'ga to'g'ridan-to'g'ri yozilmaydi, shared/data.js orqali
-// ketadi: darhol localStorage'ga tushadi, "Saqlandi" shu zahoti ko'rinadi,
-// haqiqiy Firestore yozuvi orqa fonda ketadi (fs o'chib qolsa ham ma'lumot
-// yo'qolmaydi, keyinroq avtomatik urinib ko'radi).
+// getTeacherProfile xato bersa ham (masalan tarmoq/ruxsat muammosi) sahifa
+// butunlay "o'lib qolmasligi" kerak — try/catch bo'lmasa, shu yerdagi xato
+// pastdagi profileForm/passwordForm submit handler'larini ham
+// ro'yxatdan o'tkazmay qo'yardi (chunki ular shu await'dan KEYIN yoziladi).
+try {
+  const profile = await getTeacherProfile(user.uid);
+  if (profile) {
+    nameInput.value = profile.name || '';
+    usernameInput.value = profile.username || '';
+  }
+} catch (err) {
+  console.error("Profil yuklanmadi:", err);
+  showMsg(profileMsg, "Profil ma'lumotlarini yuklab bo'lmadi: " + err.message, 'error');
+}
+
+// Profil — shared/data.js orqali ketadi: "Saqlandi" shu zahoti ko'rinadi
+// (optimistik UI), haqiqiy Firestore yozuvi orqa fonda ketadi — offline
+// bo'lsa, Firestore'ning o'z IndexedDb navbatida turib, internet qaytganda
+// avtomatik sinxronlanadi. Xato chiqsa (masalan ruxsat rad etilsa),
+// yuqoridagi "Saqlandi" xabari .catch()da "Saqlanmadi: ..." bilan almashadi.
 profileForm.addEventListener('submit', (e) => {
   e.preventDefault();
   profileMsg.style.display = 'none';
@@ -93,7 +103,9 @@ profileForm.addEventListener('submit', (e) => {
     return;
   }
 
-  updateTeacherProfile(user.uid, { name });
+  updateTeacherProfile(user.uid, { name }).catch(err => {
+    showMsg(profileMsg, "Saqlanmadi: " + err.message, 'error');
+  });
   showMsg(profileMsg, "Saqlandi.", 'success');
 });
 

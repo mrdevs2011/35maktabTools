@@ -96,11 +96,10 @@ if (!activeClass) {
     avgValue.textContent = avg.toFixed(1);
   }
 
-  // addToToolArray endi setDoc(...,{merge:true}) + arrayUnion ishlatadi —
-  // hujjat mavjud bo'lmasa ham avtomatik yaratiladi, shuning uchun avval
-  // "bor-yo'qligini" tekshirish (getToolDoc chaqirish) kerak emas. Natijada
-  // bu funksiya hech qanday tarmoq javobini kutmaydi — darhol ishlaydi,
-  // Firestore yozuvi orqa fonda ketadi.
+  // addToToolArray setDoc(...,{merge:true}) + arrayUnion ishlatadi — hujjat
+  // mavjud bo'lmasa ham avtomatik yaratiladi, avval "bor-yo'qligini"
+  // tekshirish kerak emas. UI darhol "Saqlandi ✓" ko'rsatadi (optimistik),
+  // promise await qilinmaydi — xato chiqsa .catch() xabarni almashtiradi.
   function addScore() {
     const studentId = studentSelect.value;
     const value = Number(scoreInput.value);
@@ -114,6 +113,9 @@ if (!activeClass) {
 
     addToToolArray(user.uid, "grades", studentId, "scores", value).then((updated) => {
       renderScores(updated.scores || []);
+    }).catch(err => {
+      syncStatus.textContent = "Saqlanmadi: " + err.message;
+      syncStatus.className = "sync-status error";
     });
 
     scoreInput.value = '';
