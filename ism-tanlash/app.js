@@ -1,177 +1,253 @@
 // app.js — Ism Roulette. FAQAT shu tool'ning logikasi. Shell, CSS, auth — shared/'da.
 import { mountToolShell } from "../shared/shell.js";
-import { listStudents, replaceStudents } from "../shared/data.js";
+import { getActiveClass, listStudents } from "../shared/data.js";
+import { icon } from "../shared/icons.js";
 
 const { user, container } = await mountToolShell({
   eyebrow: "O'quvchi tanlash",
   title: `Ism <span>Roulette</span>`,
 });
 
-container.innerHTML = `
-  <div class="card">
-    <div class="stage" id="stage">
-      <div class="stage-empty" id="stageEmpty">Ismlarni kiriting va "Tanla" bosing</div>
+const activeClass = await getActiveClass(user.uid);
+
+if (!activeClass) {
+  container.innerHTML = `
+    <div class="no-class-notice">
+      Hali faol sinf tanlanmagan. Avval <a href="../">bosh sahifada</a> sinf yarating yoki tanlang — shundan keyin bu yerda ishlaydi.
+    </div>
+  `;
+} else {
+  const storageKey = `ism-roulette-excluded_${user.uid}_${activeClass.id}`;
+
+  container.innerHTML = `
+    <p class="section-lead">Sinf: <strong>${activeClass.name}</strong> — <a href="../">almashtirish</a></p>
+    <div class="card">
+      <div style="display:flex; justify-content:flex-end; margin-bottom:8px;">
+        <button class="btn-ghost" id="settingsBtn" type="button" title="Sozlamalar">
+          ${icon('settings', 16)} Sozlamalar
+        </button>
+      </div>
+
+      <div class="stage" id="stage">
+        <div class="stage-empty" id="stageEmpty">Yuklanmoqda...</div>
+      </div>
+
+      <div class="meta-row">
+        <span id="countLabel">0 ta ism</span>
+      </div>
+
+      <div class="btn-row" style="justify-content:center;">
+        <button class="btn-main" id="pickBtn">${icon('shuffle', 16)} Tanla</button>
+      </div>
+
+      <div class="pool-count" id="poolCount" style="display:none;">
+        <span class="dot"></span>
+        <span id="poolCountText"></span>
+      </div>
+
+      <div class="sync-status" id="syncStatus"></div>
     </div>
 
-    <textarea id="namesInput" placeholder="Har bir qatorga bitta ism:&#10;Ali&#10;Vali&#10;Guli&#10;Madina"></textarea>
-
-    <div class="meta-row">
-      <label class="toggle">
-        <input type="checkbox" id="removeAfterPick" checked>
-        Tanlangach ro'yxatdan olib tashlash
-      </label>
-      <span id="countLabel">0 ta ism</span>
+    <div class="card" id="settingsPanel" style="display:none;">
+      <p class="section-lead">O'chirilgan (off) o'quvchi roulette'da chiqmaydi. Holat localStorage'da saqlanadi.</p>
+      <div id="studentList"></div>
     </div>
+  `;
 
-    <div class="btn-row">
-      <button class="btn-save" id="saveBtn">Saqlash</button>
-      <button class="btn-main" id="pickBtn">Tanla</button>
-      <button class="btn-ghost" id="resetBtn">Qayta yuklash</button>
-    </div>
+  const stage = document.getElementById('stage');
+  const stageEmpty = document.getElementById('stageEmpty');
+  const pickBtn = document.getElementById('pickBtn');
+  const countLabel = document.getElementById('countLabel');
+  const poolCount = document.getElementById('poolCount');
+  const poolCountText = document.getElementById('poolCountText');
+  const syncStatus = document.getElementById('syncStatus');
+  const settingsBtn = document.getElementById('settingsBtn');
+  const settingsPanel = document.getElementById('settingsPanel');
+  const studentList = document.getElementById('studentList');
 
-    <div class="sync-status" id="syncStatus"></div>
+  let pool = [];
+  let fullList = [];
+  let studentsWithId = [];
+  let excludedIds = new Set();
+  let spinning = false;
 
-    <div class="pool-count" id="poolCount" style="display:none;">
-      <span class="dot"></span>
-      <span id="poolCountText"></span>
-    </div>
-  </div>
-`;
-
-const namesInput = document.getElementById('namesInput');
-const stage = document.getElementById('stage');
-const stageEmpty = document.getElementById('stageEmpty');
-const pickBtn = document.getElementById('pickBtn');
-const resetBtn = document.getElementById('resetBtn');
-const saveBtn = document.getElementById('saveBtn');
-const removeAfterPick = document.getElementById('removeAfterPick');
-const countLabel = document.getElementById('countLabel');
-const poolCount = document.getElementById('poolCount');
-const poolCountText = document.getElementById('poolCountText');
-const syncStatus = document.getElementById('syncStatus');
-
-let pool = [];
-let fullList = [];
-let spinning = false;
-
-// ---------- FIRESTORE (yagona umumiy students ro'yxati orqali) ----------
-async function loadStudents() {
-  syncStatus.textContent = "Yuklanmoqda...";
-  try {
-    const students = await listStudents(user.uid);
-    namesInput.value = students.map(s => s.name).join('\n');
-    syncFromTextarea();
-    syncStatus.textContent = students.length ? `${students.length} ta ism yuklandi` : "";
-    syncStatus.className = "sync-status";
-  } catch (err) {
-    syncStatus.textContent = "Yuklashda xatolik: " + err.message;
-    syncStatus.className = "sync-status error";
-  }
-}
-
-async function saveStudents() {
-  saveBtn.disabled = true;
-  syncStatus.textContent = "Saqlanmoqda...";
-  syncStatus.className = "sync-status";
-  try {
-    await replaceStudents(user.uid, parseNames());
-    syncStatus.textContent = "Saqlandi ✓";
-    syncStatus.className = "sync-status saved";
-  } catch (err) {
-    syncStatus.textContent = "Saqlashda xatolik: " + err.message;
-    syncStatus.className = "sync-status error";
-  } finally {
-    saveBtn.disabled = false;
-  }
-}
-
-saveBtn.addEventListener('click', saveStudents);
-
-// ---------- RANDOM TANLASH LOGIKASI ----------
-function parseNames(){
-  return namesInput.value.split('\n').map(n => n.trim()).filter(n => n.length > 0);
-}
-
-function syncFromTextarea(){
-  fullList = parseNames();
-  pool = [...fullList];
-  updateCount();
-}
-
-function updateCount(){
-  countLabel.textContent = fullList.length + ' ta ism';
-  if(removeAfterPick.checked && fullList.length > 0){
-    poolCount.style.display = 'flex';
-    poolCountText.textContent = pool.length + ' / ' + fullList.length + ' hali tanlanmagan';
-  } else {
-    poolCount.style.display = 'none';
-  }
-}
-
-namesInput.addEventListener('input', syncFromTextarea);
-removeAfterPick.addEventListener('change', updateCount);
-
-function pickRandom(){
-  if(spinning) return;
-
-  const source = removeAfterPick.checked ? pool : fullList;
-
-  if(source.length === 0){
-    stageEmpty.style.display = 'block';
-    stageEmpty.textContent = fullList.length === 0
-      ? "Avval ism kiriting!"
-      : "Hammasi tanlandi! Qayta yuklang.";
-    stage.innerHTML = '';
-    stage.appendChild(stageEmpty);
-    return;
-  }
-
-  spinning = true;
-  pickBtn.disabled = true;
-  stage.classList.remove('winner');
-
-  let spins = 0;
-  const totalSpins = 18 + Math.floor(Math.random() * 6);
-  const nameEl = document.createElement('div');
-  nameEl.className = 'stage-name';
-  stage.innerHTML = '';
-  stage.appendChild(nameEl);
-
-  const interval = setInterval(() => {
-    const randomIndex = Math.floor(Math.random() * source.length);
-    nameEl.textContent = source[randomIndex];
-    spins++;
-
-    if(spins >= totalSpins){
-      clearInterval(interval);
-
-      const finalIndex = Math.floor(Math.random() * source.length);
-      const winner = source[finalIndex];
-      nameEl.textContent = winner;
-      stage.classList.add('winner');
-
-      if(removeAfterPick.checked){
-        pool.splice(finalIndex, 1);
+  function loadExcluded() {
+    try {
+      const raw = localStorage.getItem(storageKey);
+      if (raw) {
+        const arr = JSON.parse(raw);
+        if (Array.isArray(arr)) excludedIds = new Set(arr);
       }
-      updateCount();
+    } catch { /* ignore */ }
+  }
 
-      spinning = false;
-      pickBtn.disabled = false;
+  function saveExcluded() {
+    try {
+      localStorage.setItem(storageKey, JSON.stringify([...excludedIds]));
+    } catch { /* ignore */ }
+  }
+
+  function rebuildLists() {
+    fullList = studentsWithId
+      .filter(s => !excludedIds.has(s.id))
+      .map(s => s.name);
+    const fullSet = new Set(fullList);
+    pool = pool.filter(n => fullSet.has(n));
+    if (pool.length === 0 && fullList.length > 0) {
+      pool = [...fullList];
     }
-  }, 60 + spins * 4);
+    updateCount();
+  }
+
+  function updateCount() {
+    countLabel.textContent = fullList.length + ' ta ism';
+    if (fullList.length > 0) {
+      poolCount.style.display = 'flex';
+      poolCountText.textContent = pool.length + ' / ' + fullList.length + ' hali tanlanmagan';
+    } else {
+      poolCount.style.display = 'none';
+    }
+  }
+
+  function renderStudentList() {
+    if (studentsWithId.length === 0) {
+      studentList.innerHTML = `<div class="empty-state">Bu sinfda hali o'quvchi yo'q.</div>`;
+      return;
+    }
+    studentList.innerHTML = studentsWithId.map(s => {
+      const isOn = !excludedIds.has(s.id);
+      return `
+        <div class="student-row" style="display:flex; align-items:center; justify-content:space-between; padding:10px 0; border-bottom:1px solid rgba(255,255,255,0.06);">
+          <span>${s.name}</span>
+          <label class="toggle" title="${isOn ? 'Roulette\'da bor' : 'Roulette\'dan chiqarilgan'}">
+            ${isOn ? icon('eye', 16) : icon('eyeOff', 16)}
+            <input type="checkbox" data-student-id="${s.id}" ${isOn ? 'checked' : ''}>
+          </label>
+        </div>
+      `;
+    }).join('');
+
+    studentList.querySelectorAll('[data-student-id]').forEach(input => {
+      input.addEventListener('change', (e) => {
+        const id = e.target.dataset.studentId;
+        if (e.target.checked) {
+          excludedIds.delete(id);
+        } else {
+          excludedIds.add(id);
+        }
+        saveExcluded();
+        rebuildLists();
+        renderStudentList();
+      });
+    });
+  }
+
+  async function loadStudents() {
+    syncStatus.textContent = "Yuklanmoqda...";
+    try {
+      loadExcluded();
+      const students = await listStudents(user.uid, activeClass.id);
+      studentsWithId = students.filter(s => s.name && s.name.trim());
+      rebuildLists();
+
+      if (studentsWithId.length === 0) {
+        stageEmpty.textContent = "Bu sinfda hali o'quvchi yo'q. Avval sinflar sahifasida qo'shing.";
+        stage.innerHTML = '';
+        stage.appendChild(stageEmpty);
+        pickBtn.disabled = true;
+      } else if (fullList.length === 0) {
+        stageEmpty.textContent = "Barcha o'quvchilar o'chirilgan. Sozlamalardan yoqing.";
+        stage.innerHTML = '';
+        stage.appendChild(stageEmpty);
+        pickBtn.disabled = true;
+      } else {
+        stageEmpty.textContent = "\"Tanla\" tugmasini bosing";
+        stage.innerHTML = '';
+        stage.appendChild(stageEmpty);
+        pickBtn.disabled = false;
+      }
+      syncStatus.textContent = studentsWithId.length ? `${studentsWithId.length} ta ism yuklandi` : "";
+      syncStatus.className = "sync-status";
+      renderStudentList();
+    } catch (err) {
+      syncStatus.textContent = "Yuklashda xatolik: " + err.message;
+      syncStatus.className = "sync-status error";
+      stageEmpty.textContent = "Xatolik yuz berdi";
+      pickBtn.disabled = true;
+    }
+  }
+
+  function pickRandom() {
+    if (spinning) return;
+
+    if (pool.length === 0) {
+      pool = [...fullList];
+      updateCount();
+    }
+
+    if (pool.length === 0) {
+      stageEmpty.style.display = 'block';
+      stageEmpty.textContent = fullList.length === 0
+        ? "Barcha o'quvchilar o'chirilgan yoki sinfda o'quvchi yo'q."
+        : "Hammasi tanlandi.";
+      stage.innerHTML = '';
+      stage.appendChild(stageEmpty);
+      return;
+    }
+
+    spinning = true;
+    pickBtn.disabled = true;
+    stage.classList.remove('winner');
+
+    const nameEl = document.createElement('div');
+    nameEl.className = 'stage-name';
+    stage.innerHTML = '';
+    stage.appendChild(nameEl);
+
+    let spins = 0;
+    const totalSpins = 18 + Math.floor(Math.random() * 6);
+
+    function tick() {
+      const randomIndex = Math.floor(Math.random() * pool.length);
+      nameEl.textContent = pool[randomIndex];
+      spins++;
+
+      if (spins >= totalSpins) {
+        const finalIndex = Math.floor(Math.random() * pool.length);
+        const winner = pool[finalIndex];
+        nameEl.textContent = winner;
+        stage.classList.add('winner');
+
+        pool.splice(finalIndex, 1);
+        updateCount();
+
+        spinning = false;
+        pickBtn.disabled = false;
+        return;
+      }
+
+      const delay = 60 + Math.floor((spins / totalSpins) * 70);
+      setTimeout(tick, delay);
+    }
+    tick();
+  }
+
+  settingsBtn.addEventListener('click', () => {
+    const opening = settingsPanel.style.display === 'none';
+    settingsPanel.style.display = opening ? 'block' : 'none';
+    if (opening) renderStudentList();
+  });
+
+  pickBtn.addEventListener('click', pickRandom);
+
+  document.addEventListener('keydown', (e) => {
+    const tag = (e.target && e.target.tagName) || '';
+    const inField = tag === 'TEXTAREA' || tag === 'INPUT';
+    if ((e.code === 'Space' || e.code === 'Enter') && !inField && !e.metaKey && !e.ctrlKey) {
+      e.preventDefault();
+      pickRandom();
+    }
+  });
+
+  await loadStudents();
 }
-
-function resetPool(){
-  pool = [...fullList];
-  stage.innerHTML = '';
-  stageEmpty.style.display = 'block';
-  stageEmpty.textContent = "Ismlarni kiriting va \"Tanla\" bosing";
-  stage.appendChild(stageEmpty);
-  stage.classList.remove('winner');
-  updateCount();
-}
-
-pickBtn.addEventListener('click', pickRandom);
-resetBtn.addEventListener('click', resetPool);
-
-await loadStudents();
