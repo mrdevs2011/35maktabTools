@@ -4,8 +4,8 @@ import { getActiveClass, listStudents } from "../shared/data.js";
 import { icon } from "../shared/icons.js";
 
 const { user, container } = await mountToolShell({
-  eyebrow: "O'quvchi tanlash",
-  title: `Ism <span>Roulette</span>`,
+  eyebrow: "Tasodifiy o'quvchi tanlash",
+  title: `Ism <span>Tanlash</span>`,
 });
 
 const activeClass = await getActiveClass(user.uid);
