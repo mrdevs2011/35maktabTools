@@ -25,6 +25,7 @@ if (!activeClass) {
       <div class="stage" id="stage">
         <div class="stage-empty" id="stageEmpty">Ismlarni kiriting va "Tanla" bosing</div>
       </div>
+      <div class="kbd-hint">Space / Enter — tanlash · R — qayta yuklash</div>
 
       <textarea id="namesInput" placeholder="Har bir qatorga bitta ism:&#10;Ali&#10;Vali&#10;Guli&#10;Madina"></textarea>
 
@@ -114,6 +115,18 @@ if (!activeClass) {
 
   saveBtn.addEventListener('click', saveStudents);
 
+  // Avto-saqlash: yozish to'xtagach 1.2s ichida (yoki blur'da) — alohida
+  // "Saqlash" bosish shart emas, lekin tugma ham ishlaydi.
+  let saveTimer = null;
+  namesInput.addEventListener('input', () => {
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(saveStudents, 1200);
+  });
+  namesInput.addEventListener('blur', () => {
+    clearTimeout(saveTimer);
+    if (namesInput.value.trim()) saveStudents();
+  });
+
   function parseNames() {
     return namesInput.value.split('\n').map(n => n.trim()).filter(n => n.length > 0);
   }
@@ -160,21 +173,21 @@ if (!activeClass) {
     pickBtn.disabled = true;
     stage.classList.remove('winner');
 
-    let spins = 0;
-    const totalSpins = 18 + Math.floor(Math.random() * 6);
     const nameEl = document.createElement('div');
     nameEl.className = 'stage-name';
     stage.innerHTML = '';
     stage.appendChild(nameEl);
 
-    const interval = setInterval(() => {
+    // Tezroq, lekin "rulletka" hissi saqlanadi: 12–16 aylanish, sekinlashib boradi
+    const totalSpins = 12 + Math.floor(Math.random() * 5);
+    let spins = 0;
+
+    function tick() {
       const randomIndex = Math.floor(Math.random() * source.length);
       nameEl.textContent = source[randomIndex];
       spins++;
 
       if (spins >= totalSpins) {
-        clearInterval(interval);
-
         const finalIndex = Math.floor(Math.random() * source.length);
         const winner = source[finalIndex];
         nameEl.textContent = winner;
@@ -187,8 +200,14 @@ if (!activeClass) {
 
         spinning = false;
         pickBtn.disabled = false;
+        return;
       }
-    }, 60 + spins * 4);
+
+      // Boshida ~40ms, oxiriga ~110ms — sekinlashish effekt
+      const delay = 40 + Math.floor((spins / totalSpins) * 70);
+      setTimeout(tick, delay);
+    }
+    tick();
   }
 
   function resetPool() {
@@ -203,6 +222,21 @@ if (!activeClass) {
 
   pickBtn.addEventListener('click', pickRandom);
   resetBtn.addEventListener('click', resetPool);
+
+  // Klaviatura: Space / Enter → Tanla (textarea fokusda emas bo'lsa)
+  // R → Qayta yuklash
+  document.addEventListener('keydown', (e) => {
+    const tag = (e.target && e.target.tagName) || '';
+    const inField = tag === 'TEXTAREA' || tag === 'INPUT';
+    if ((e.code === 'Space' || e.code === 'Enter') && !inField && !e.metaKey && !e.ctrlKey) {
+      e.preventDefault();
+      pickRandom();
+    }
+    if ((e.key === 'r' || e.key === 'R') && !inField && !e.metaKey && !e.ctrlKey) {
+      e.preventDefault();
+      resetPool();
+    }
+  });
 
   function renderExcludeList() {
     if (studentsWithId.length === 0) {

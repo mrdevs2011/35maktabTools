@@ -5,6 +5,21 @@ import { icon } from "./icons.js";
 
 const FONT_LINK_ID = "__mt_fonts";
 
+/** Service Worker — offline shell + keyingi ochilishni tezlashtirish. */
+function ensureServiceWorker(rootPath = "./") {
+  if (!("serviceWorker" in navigator)) return;
+  const base = rootPath.endsWith("/") ? rootPath : rootPath + "/";
+  let swUrl;
+  try {
+    swUrl = new URL("sw.js", new URL(base, location.href)).href;
+  } catch {
+    return;
+  }
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register(swUrl, { scope: new URL(base, location.href).href }).catch(() => {});
+  });
+}
+
 function ensureFonts(){
   if (document.getElementById(FONT_LINK_ID)) return;
   const preconnect = document.createElement('link');
@@ -76,6 +91,15 @@ function ensureNativeMeta(rootPath, sharedPath){
   viewport.content = "width=device-width, initial-scale=1.0, viewport-fit=cover";
 }
 
+/** Keyingi sahifani brauzer keshiga oldindan yuklaydi — hover/focus'da chaqiriladi. */
+export function prefetch(url) {
+  if (!url || document.querySelector(`link[rel="prefetch"][href="${url}"]`)) return;
+  const link = document.createElement('link');
+  link.rel = 'prefetch';
+  link.href = url;
+  document.head.appendChild(link);
+}
+
 export function mountToolShell(opts = {}) {
   const {
     eyebrow = "",
@@ -93,6 +117,7 @@ export function mountToolShell(opts = {}) {
   ensureFonts();
   ensureTheme(sharedPath);
   ensureNativeMeta(rootPath, sharedPath);
+  ensureServiceWorker(rootPath);
   document.body.classList.add(layout === "page" ? "layout-page" : "layout-center");
 
   document.body.insertAdjacentHTML('afterbegin', `
@@ -110,19 +135,21 @@ export function mountToolShell(opts = {}) {
     </div>
   `);
 
+  if (showBack) prefetch(rootPath);
+  if (showSettings) prefetch(settingsPath);
+
   return new Promise((resolve) => {
-    requireAuth(async (user) => {
+    requireAuth((user) => {
       document.getElementById('__mt_gate').style.display = 'none';
       document.getElementById('__mt_wrap').style.display = 'block';
 
       if (!showBack) {
-        try {
-          const profile = await getTeacherProfile(user.uid);
-          document.getElementById('__mt_userlabel').textContent =
-            profile ? profile.name : user.email;
-        } catch {
-          document.getElementById('__mt_userlabel').textContent = user.email;
-        }
+        // Profil nomi UI'ni bloklamaydi — avval email, keyin ism keladi
+        const labelEl = document.getElementById('__mt_userlabel');
+        labelEl.textContent = user.email || '';
+        getTeacherProfile(user.uid).then(profile => {
+          if (profile?.name) labelEl.textContent = profile.name;
+        }).catch(() => {});
       }
 
       resolve({ user, container: document.getElementById('__mt_app') });

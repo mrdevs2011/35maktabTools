@@ -34,8 +34,10 @@ const newClassForm = document.getElementById('newClassForm');
 
 // Boshlang'ich yuklash — bu yagona joy qayerda haqiqatan Firestore/keshdan
 // kutamiz, chunki hali qo'lda hech narsa qilinmagan.
-let classes = await listClasses(user.uid);
-let activeClass = await getActiveClass(user.uid);
+let [classes, activeClass] = await Promise.all([
+  listClasses(user.uid),
+  getActiveClass(user.uid),
+]);
 let studentsByClass = {}; // classId -> student[] — sahifa davomida xotirada saqlanadi
 let openId = null;
 const preselectId = new URLSearchParams(window.location.search).get('classId');

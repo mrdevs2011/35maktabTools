@@ -8,6 +8,9 @@ o'z ma'lumotlarini ko'radi.
 **Yangi tool qo'shmoqchimisiz? → [`HOW_TO_ADD_A_TOOL.md`](./HOW_TO_ADD_A_TOOL.md)ni o'qing.**
 3 qadam, har doim bir xil — 1-chi tool ham, 1000-chi tool ham.
 
+**AI yordamchi (Cursor/ChatGPT/Grok) uchun qoidalar → [`AI.md`](./AI.md).**
+Arxitektura, stillar, PWA/SW, nima qilish/qilmaslik — hammasi shu yerda.
+
 ## Tool'lar
 
 | Tool | Papka | Holat |

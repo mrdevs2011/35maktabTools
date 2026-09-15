@@ -12,6 +12,7 @@ const { user, container } = await mountToolShell({
 });
 
 const activeClass = await getActiveClass(user.uid);
+const LAST_STUDENT_KEY = (classId) => `mt_last_student_${user.uid}_${classId}`;
 
 if (!activeClass) {
   container.innerHTML = `
@@ -23,12 +24,23 @@ if (!activeClass) {
   container.innerHTML = `
     <p class="section-lead">Sinf: <strong>${activeClass.name}</strong> — <a href="../../">almashtirish</a></p>
     <div class="card">
-      <p class="section-lead">O'quvchini tanlang, baho kiriting — o'rtacha avtomatik hisoblanadi.</p>
+      <p class="section-lead">O'quvchini tanlang, baho kiriting yoki tezkor tugmani bosing — o'rtacha avtomatik hisoblanadi.</p>
       <label for="studentSelect">O'quvchi</label>
-      <select id="studentSelect" style="width:100%;background:var(--bg-soft);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'Inter',sans-serif;font-size:14px;padding:11px 13px;"></select>
+      <select id="studentSelect"></select>
 
-      <label for="scoreInput">Yangi baho (0-100)</label>
-      <input type="text" id="scoreInput" inputmode="numeric" placeholder="masalan: 87">
+      <label for="scoreInput">Yangi baho (0–100)</label>
+      <input type="text" id="scoreInput" inputmode="decimal" placeholder="masalan: 4.5 yoki 87" autocomplete="off">
+
+      <div class="quick-scores" id="quickScores" aria-label="Tezkor baholar">
+        <button type="button" class="chip" data-score="5">5</button>
+        <button type="button" class="chip" data-score="4">4</button>
+        <button type="button" class="chip" data-score="3">3</button>
+        <button type="button" class="chip" data-score="2">2</button>
+        <button type="button" class="chip" data-score="100">100</button>
+        <button type="button" class="chip" data-score="90">90</button>
+        <button type="button" class="chip" data-score="80">80</button>
+        <button type="button" class="chip" data-score="70">70</button>
+      </div>
 
       <div class="btn-row">
         <button class="btn-main" id="addScoreBtn">${icon('plus', 16)} Qo'shish</button>
@@ -38,10 +50,11 @@ if (!activeClass) {
     </div>
 
     <div class="card" id="resultCard" style="display:none;">
-      <h2 style="display:flex;align-items:center;gap:8px;">${icon('chart', 16)} Natija</h2>
-      <div id="scoresList" style="color:var(--text-dim);font-size:14px;line-height:1.8;"></div>
-      <div style="margin-top:14px;font-family:'Space Grotesk',sans-serif;font-size:20px;">
-        O'rtacha: <span id="avgValue" style="color:var(--gold);"></span>
+      <h2 class="with-icon">${icon('chart', 16)} Natija</h2>
+      <div class="scores-list" id="scoresList"></div>
+      <div class="avg-row">
+        O'rtacha: <span class="avg-value" id="avgValue"></span>
+        <span class="score-count" id="scoreCount"></span>
       </div>
     </div>
   `;
@@ -53,8 +66,11 @@ if (!activeClass) {
   const resultCard = document.getElementById('resultCard');
   const scoresList = document.getElementById('scoresList');
   const avgValue = document.getElementById('avgValue');
+  const scoreCount = document.getElementById('scoreCount');
 
   let students = [];
+  // Mahalliy kesh — qayta-qayta getToolDoc kutmaslik uchun
+  const scoresCache = new Map();
 
   async function loadStudents() {
     syncStatus.textContent = "Yuklanmoqda...";
@@ -65,11 +81,16 @@ if (!activeClass) {
         syncStatus.textContent = "";
         return;
       }
+
+      let lastId = null;
+      try { lastId = localStorage.getItem(LAST_STUDENT_KEY(activeClass.id)); } catch {}
+
       studentSelect.innerHTML = students
-        .map(s => `<option value="${s.id}">${s.name}</option>`)
+        .map(s => `<option value="${s.id}" ${s.id === lastId ? 'selected' : ''}>${s.name}</option>`)
         .join('');
       syncStatus.textContent = "";
       await loadScoresForSelected();
+      scoreInput.focus();
     } catch (err) {
       syncStatus.textContent = "Yuklashda xatolik: " + err.message;
       syncStatus.className = "sync-status error";
@@ -80,8 +101,16 @@ if (!activeClass) {
     const studentId = studentSelect.value;
     if (!studentId) { resultCard.style.display = 'none'; return; }
 
+    try { localStorage.setItem(LAST_STUDENT_KEY(activeClass.id), studentId); } catch {}
+
+    if (scoresCache.has(studentId)) {
+      renderScores(scoresCache.get(studentId));
+      return;
+    }
+
     const gradeDoc = await getToolDoc(user.uid, "grades", studentId);
     const scores = gradeDoc?.scores || [];
+    scoresCache.set(studentId, scores);
     renderScores(scores);
   }
 
@@ -94,37 +123,81 @@ if (!activeClass) {
     scoresList.textContent = scores.join(', ');
     const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
     avgValue.textContent = avg.toFixed(1);
+    scoreCount.textContent = `(${scores.length} ta baho)`;
   }
 
-  // addToToolArray setDoc(...,{merge:true}) + arrayUnion ishlatadi — hujjat
-  // mavjud bo'lmasa ham avtomatik yaratiladi, avval "bor-yo'qligini"
-  // tekshirish kerak emas. UI darhol "Saqlandi ✓" ko'rsatadi (optimistik),
-  // promise await qilinmaydi — xato chiqsa .catch() xabarni almashtiradi.
-  function addScore() {
+  function addScore(rawValue) {
     const studentId = studentSelect.value;
-    const value = Number(scoreInput.value);
+    const value = Number(rawValue ?? scoreInput.value);
 
-    if (!studentId) { return; }
+    if (!studentId) {
+      syncStatus.textContent = "Avval o'quvchini tanlang.";
+      syncStatus.className = "sync-status error";
+      return;
+    }
     if (!Number.isFinite(value) || value < 0 || value > 100) {
       syncStatus.textContent = "0 dan 100 gacha son kiriting.";
       syncStatus.className = "sync-status error";
       return;
     }
 
+    // Optimistik UI: darhol ro'yxatga qo'shamiz
+    const prev = scoresCache.get(studentId) || [];
+    const next = [...prev, value];
+    scoresCache.set(studentId, next);
+    renderScores(next);
+
     addToToolArray(user.uid, "grades", studentId, "scores", value).then((updated) => {
-      renderScores(updated.scores || []);
+      const serverScores = updated.scores || next;
+      scoresCache.set(studentId, serverScores);
+      renderScores(serverScores);
     }).catch(err => {
+      scoresCache.set(studentId, prev);
+      renderScores(prev);
       syncStatus.textContent = "Saqlanmadi: " + err.message;
       syncStatus.className = "sync-status error";
     });
 
     scoreInput.value = '';
+    scoreInput.focus();
     syncStatus.textContent = "Saqlandi ✓";
     syncStatus.className = "sync-status saved";
   }
 
-  studentSelect.addEventListener('change', loadScoresForSelected);
-  addScoreBtn.addEventListener('click', addScore);
+  studentSelect.addEventListener('change', () => {
+    loadScoresForSelected();
+    scoreInput.focus();
+  });
+  addScoreBtn.addEventListener('click', () => addScore());
+
+  // Enter → qo'shish
+  scoreInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      addScore();
+    }
+  });
+
+  // Tezkor chip'lar
+  document.getElementById('quickScores').addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-score]');
+    if (!btn) return;
+    addScore(btn.dataset.score);
+  });
+
+  // ← / → o'quvchini almashtirish (input fokusda bo'lmasa yoki Alt bilan)
+  document.addEventListener('keydown', (e) => {
+    if (e.target === scoreInput) return;
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      const opts = [...studentSelect.options];
+      if (opts.length < 2) return;
+      e.preventDefault();
+      let idx = studentSelect.selectedIndex;
+      idx = e.key === 'ArrowDown' ? Math.min(opts.length - 1, idx + 1) : Math.max(0, idx - 1);
+      studentSelect.selectedIndex = idx;
+      studentSelect.dispatchEvent(new Event('change'));
+    }
+  });
 
   await loadStudents();
 }

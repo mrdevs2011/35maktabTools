@@ -8,6 +8,11 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../shared/theme.css">
+<link rel="manifest" href="../manifest.json">
+<meta name="theme-color" content="#14172B">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="apple-touch-icon" href="../assets/icon-192.png">
 <style>
   /* Login-ga xos qo'shimcha stillar — theme.css umumiyini to'ldiradi, takrorlamaydi */
   body{ display:flex; align-items:center; justify-content:center; padding: 24px; }
@@ -63,6 +68,12 @@
 </div>
 
 <script type="module" src="./app.js"></script>
-
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function () {
+      navigator.serviceWorker.register('../sw.js', { scope: '../' }).catch(function () {});
+    });
+  }
+</script>
 </body>
 </html>

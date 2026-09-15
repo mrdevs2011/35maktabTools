@@ -1,4 +1,4 @@
-import { mountToolShell } from "./shared/shell.js";
+import { mountToolShell, prefetch } from "./shared/shell.js";
 import { TOOLS } from "./shared/tools-registry.js";
 import { listClasses, createClass, getActiveClass, setActiveClass } from "./shared/data.js";
 
@@ -15,8 +15,11 @@ const { user, container } = await mountToolShell({
   settingsPath: "settings/",
 });
 
-let classes = await listClasses(user.uid);
-let activeClass = await getActiveClass(user.uid);
+// Parallel yuklash — ketma-ket kutish o'rniga bir vaqtda
+let [classes, activeClass] = await Promise.all([
+  listClasses(user.uid),
+  getActiveClass(user.uid),
+]);
 
 function classOptionsHTML() {
   if (classes.length === 0) return `<option value="">Hali sinf yo'q</option>`;
@@ -55,6 +58,13 @@ container.insertAdjacentHTML('beforeend', `
   <div class="grid">${cardsHTML}</div>
   <footer>Muhammadrasul tomonidan, 35-maktab uchun.</footer>
 `);
+
+// Tayyor tool'lar va sinflar sahifasini oldindan isitish — ochish sezilarli tezroq
+prefetch('sinflar/');
+TOOLS.filter(t => t.status === 'ready').forEach(t => prefetch(t.path));
+document.querySelectorAll('.tool-card[href]').forEach(a => {
+  a.addEventListener('pointerenter', () => prefetch(a.getAttribute('href')), { once: true });
+});
 
 // Select o'zgarganda — darhol UI yangilanadi, Firestore yozuvi orqa fonda
 // ketadi (setActiveClass ichida), tugma/hech narsa kutib turmaydi.

@@ -19,7 +19,7 @@ import {
    qaytmaydi. "Optimistik" UI (tugma bosilgach darhol "Saqlandi ✓"
    ko'rsatish) endi CHAQIRUVCHI TOMONDA: funksiyani await qilmasdan
    chaqirib, natijani/xatoni `.then()/.catch()` bilan orqa fonda kutish
-   kerak — bu naqsh allaqachon `sinflar/app.js`, `tools/*/app.js`,
+   kerak — bu naqsh allaqachon `sinflar/app.js`, `tools/.../app.js`,
    `settings/app.js` fayllarida qo'llanildi.
    ============================================================ */
 
@@ -67,15 +67,48 @@ export async function deleteClass(uid, classId) {
   await batch.commit();
 }
 
+const ACTIVE_CLASS_KEY = (uid) => `mt_active_class_${uid}`;
+
 export async function getActiveClass(uid) {
+  // Session kesh: birinchi ochilishda Firestore kutishini sezilmas qiladi.
+  // Keyingi navigatsiyalarda UI darhol to'g'ri sinf nomini ko'rsatadi.
+  try {
+    const cached = sessionStorage.getItem(ACTIVE_CLASS_KEY(uid));
+    if (cached) {
+      const parsed = JSON.parse(cached);
+      if (parsed && parsed.id) {
+        // Fonida yangilab turamiz (kesh eskirgan bo'lishi mumkin)
+        getDoc(doc(db, "teachers", uid)).then(snap => {
+          const data = snap.exists() ? snap.data() : {};
+          if (data.activeClassId) {
+            sessionStorage.setItem(ACTIVE_CLASS_KEY(uid), JSON.stringify({
+              id: data.activeClassId, name: data.activeClassName || ""
+            }));
+          } else {
+            sessionStorage.removeItem(ACTIVE_CLASS_KEY(uid));
+          }
+        }).catch(() => {});
+        return parsed;
+      }
+    }
+  } catch { /* sessionStorage band/bloklangan */ }
+
   const snap = await getDoc(doc(db, "teachers", uid));
   const data = snap.exists() ? snap.data() : {};
-  return data.activeClassId
+  const result = data.activeClassId
     ? { id: data.activeClassId, name: data.activeClassName || "" }
     : null;
+  try {
+    if (result) sessionStorage.setItem(ACTIVE_CLASS_KEY(uid), JSON.stringify(result));
+    else sessionStorage.removeItem(ACTIVE_CLASS_KEY(uid));
+  } catch {}
+  return result;
 }
 
 export async function setActiveClass(uid, classId, name) {
+  try {
+    sessionStorage.setItem(ACTIVE_CLASS_KEY(uid), JSON.stringify({ id: classId, name }));
+  } catch {}
   await setDoc(
     doc(db, "teachers", uid),
     { activeClassId: classId, activeClassName: name },
